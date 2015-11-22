@@ -1,12 +1,18 @@
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
+
 from __future__ import division
 from twisted.words.protocols import irc
 from twisted.internet import reactor, protocol, defer
 from twisted.web.client import getPage
 
-import time, sys, json, numbers, datetime
+import time, sys, json, numbers, datetime, sqlite3, os
 
 joined = 0
 players = []
+
+playdb = sqlite3.connect((os.path.join(os.path.dirname(__file__), "players.db")))
+pdb = playdb.cursor()
 
 class XLeagueBot(irc.IRCClient):
 	
@@ -30,6 +36,7 @@ class XLeagueBot(irc.IRCClient):
 	def privmsg(self, user, channel, msg):
 		global joined
 		global players
+		global pdb
 		user = user.split('!', 1)[0]
 
 		if channel == self.nickname:
@@ -38,10 +45,13 @@ class XLeagueBot(irc.IRCClient):
 			return
 
 		if msg.startswith(".join"):
-			canjoin = players.count(user)
+			pdb.execute("SELECT * FROM players WHERE Name = '%s'" % user)
+			playerstats = pdb.fetchone()
+			player = playerstats[1]
+			canjoin = players.count(player)
 			if canjoin == 0:	
 				joined = joined + 1
-				players.append(user)
+				players.append(player)
 				if joined == 1:
 					msg = "7 to go. Type .join to join.\n Players: " + ",".join(map(str,players))
 				elif joined == 2:
@@ -65,14 +75,35 @@ class XLeagueBot(irc.IRCClient):
 			self.msg(channel, msg)
 
 		if msg.startswith(".leave"):
-			canleave = players.count(user)
+			pdb.execute("SELECT * FROM players WHERE Name = '%s'" % user)
+			playerstats = pdb.fetchone()
+			player = playerstats[1]
+			canleave = players.count(player)
 			if canleave == 1:
-				players.remove(user)
+				players.remove(player)
 				joined = joined - 1
-				msg = "%s left."%(user)
+				msg = "%s left."%(player)
 			else:
 				msg = "I could not find you in draft."
+			msg = msg.encode('UTF-8', 'replace')
 			self.msg(channel, msg)
+
+		if msg.startswith(".player"):
+			player = msg[8:]
+			player = player.strip()
+			try:
+				pdb.execute("SELECT * FROM players WHERE Name = '%s'" % player)
+				playerstats = pdb.fetchone()
+				try:
+					WLR = str(playerstats[4] / playerstats[5] * 100) + "%"
+				except ZeroDivisionError:
+					WLR = "N/A"
+				msg = "Stats for " + playerstats[1] + " -" + " Rating: " + str(playerstats[2]) + " - Games Played: " + str(playerstats[3]) + " - Wins: " + str(playerstats[4]) + " - Losses: " + str(playerstats[5]) + " - Win Percentage: " + WLR
+			except TypeError:
+				msg = "No player named '%s' found"%(player)
+			msg = msg.encode('UTF-8', 'replace')
+			self.msg(channel, msg)
+
 
 		if msg.startswith(".players"):
 			msg = "Currently in draft. Type .join to join.\n Players: " + ",".join(map(str,players))
