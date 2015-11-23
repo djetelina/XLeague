@@ -108,6 +108,7 @@ class XLeagueBot(irc.IRCClient):
 			player = playerstats[1]
 			canleave = players.count(player)
 			if canleave == 1:
+				joined = joined -1
 				players.remove(player)
 				joined = joined - 1
 				msg = "%s left."%(player)
@@ -199,7 +200,7 @@ class XLeagueBot(irc.IRCClient):
 			msg = msg.encode('UTF-8', 'replace')
 			self.msg(channel, msg)
 
-		if msg.startswith(".player"):
+		if msg.startswith(".player "):
 			player = msg[8:]
 			player = player.strip()
 			try:
@@ -216,7 +217,7 @@ class XLeagueBot(irc.IRCClient):
 			self.msg(channel, msg)
 
 		if msg.startswith(".players"):
-			msg = "Currently in draft. Type .join to join.\n Players: " + ", ".join(map(str,players))
+			msg = "Players in queue: " + ", ".join(map(str,players))
 			self.msg(channel, msg)
 
 class XLeagueBotFactory(protocol.ClientFactory):
