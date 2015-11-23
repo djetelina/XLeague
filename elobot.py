@@ -215,11 +215,9 @@ class XLeagueBot(irc.IRCClient):
 			msg = msg.encode('UTF-8', 'replace')
 			self.msg(channel, msg)
 
-
 		if msg.startswith(".players"):
 			msg = "Currently in draft. Type .join to join.\n Players: " + ", ".join(map(str,players))
 			self.msg(channel, msg)
-
 
 class XLeagueBotFactory(protocol.ClientFactory):
 
@@ -253,8 +251,6 @@ def startdraft(self):
 		msg = "Your draft has started. Password: %s" % (password)
 		player = player.encode('UTF-8', 'replace')
 		self.msg(player, msg)
-	while len(draft) < 9:
-		draft.append("Test")
 	draft.append("Yes")
 	draft.append(0)
 	gdb.execute("INSERT INTO games VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)", draft)
