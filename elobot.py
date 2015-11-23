@@ -10,9 +10,13 @@ import time, sys, json, numbers, datetime, sqlite3, os
 
 joined = 0
 players = []
+running = 0
 
 playdb = sqlite3.connect((os.path.join(os.path.dirname(__file__), "players.db")))
 pdb = playdb.cursor()
+
+gamedb = sqlite3.connect((os.path.join(os.path.dirname(__file__), "games.db")))
+gdb = gamedb.cursor()
 
 class XLeagueBot(irc.IRCClient):
 	
@@ -53,19 +57,20 @@ class XLeagueBot(irc.IRCClient):
 				joined = joined + 1
 				players.append(player)
 				if joined == 1:
-					msg = "7 to go. Type .join to join.\n Players: " + ",".join(map(str,players))
+					msg = "7 to go. Type .join to join.\n Players: " + ", ".join(map(str,players))
 				elif joined == 2:
-					msg = "6 to go. Type .join to join.\n Players: " + ",".join(map(str,players))
+					msg = "6 to go. Type .join to join.\n Players: " + ", ".join(map(str,players))
+					startdraft() #for test purposes
 				elif joined == 3:
-					msg = "5 to go. Type .join to join.\n Players: " + ",".join(map(str,players))
+					msg = "5 to go. Type .join to join.\n Players: " + ", ".join(map(str,players))
 				elif joined == 4:
-					msg = "4 to go. Type .join to join.\n Players: " + ",".join(map(str,players))
+					msg = "4 to go. Type .join to join.\n Players: " + ", ".join(map(str,players))
 				elif joined == 5:
-					msg = "3 to go. Type .join to join.\n Players: " + ",".join(map(str,players))
+					msg = "3 to go. Type .join to join.\n Players: " + ", ".join(map(str,players))
 				elif joined == 6:
-					msg = "2 to go. Type .join to join.\n Players: " + ",".join(map(str,players))
+					msg = "2 to go. Type .join to join.\n Players: " + ", ".join(map(str,players))
 				elif joined == 7:
-					msg = "1 to go. Type .join to join.\n Players: " + ",".join(map(str,players))
+					msg = "1 to go. Type .join to join.\n Players: " + ", ".join(map(str,players))
 				elif joined == 8:
 					msg = "Draft is Starting."
 					joined = 0
@@ -88,6 +93,64 @@ class XLeagueBot(irc.IRCClient):
 			msg = msg.encode('UTF-8', 'replace')
 			self.msg(channel, msg)
 
+		if msg.startswith(".result"):
+			result = msg.split()
+			gdb.execute("SELECT * from games WHERE Running = 'Yes'")
+			inprogress = gdb.fetchone()
+			if result[1] == user or result[2] == user and user in inprogress:
+				Player1 = result[1]
+				ScoreP1 = int(result[2])
+				Player2 = result[4]
+				ScoreP2 = int(result[3])
+				pdb.execute("SELECT * FROM players WHERE Name = '%s'" % Player1)
+				P1 = pdb.fetchone()
+				pdb.execute("SELECT * FROM players WHERE Name = '%s'" % Player2)
+				P2 = pdb.fetchone()
+				if P1[3] == 0:
+					K1 = 20
+				elif P1[3] > 20:
+					K1 = 15
+				elif P1[3] > 40:
+					K1 = 10
+				if P2[3] == 0:
+					K2 = 20
+				elif P2[3] > 20:
+					K2 = 15
+				elif P2[3] > 40:
+					K2 = 10
+				E1 = (1.0 / (1.0 + pow(10, ((P2[2] - P1[2]) / 400))))
+				E2 = 1 - E1
+				if ScoreP1 > ScoreP2:
+					NewRatingP1 = int((P1[2] + K1 * (1 - E1)))
+					NewRatingP2 = int((P2[2] + K2 * (0 - E2)))
+					ChangeP1 = abs(P1[2] - NewRatingP1)
+					ChangeP2 = abs(P2[2] - NewRatingP2)
+
+					#Converting ratings to Strings for msg
+					NewRatingP1 = str(NewRatingP1)
+					NewRatingP2 = str(NewRatingP2)
+					ChangeP1 = str(ChangeP1)
+					ChangeP2 = str(ChangeP2)
+					msg = "New Ratings: %s %s (+%s) %s %s (-%s)"%(P1[1], NewRatingP1, ChangeP1, P2[1], NewRatingP2, ChangeP2)
+				elif ScoreP2 > ScoreP1:
+					NewRatingP1 = int((P1[2] + K1 * (0 - E1)))
+					NewRatingP2 = int((P2[2] + K2 * (1 - E2)))
+					ChangeP1 = abs(P1[2] - NewRatingP1)
+					ChangeP2 = abs(P2[2] - NewRatingP2)
+
+					#Converting ratings to Strings for msg
+					NewRatingP1 = str(NewRatingP1)
+					NewRatingP2 = str(NewRatingP2)
+					ChangeP1 = str(ChangeP1)
+					ChangeP2 = str(ChangeP2)
+					msg = "New Ratings: %s %s (+%s) %s %s (-%s)"%(P2[1], NewRatingP2, ChangeP2, P1[1], NewRatingP1, ChangeP1)
+				else:
+					msg = "Something horrible happened, results invalid."
+			else:
+				msg = "ERROR: You can't report results for other players or you are not in a running game"
+			msg = msg.encode('UTF-8', 'replace')
+			self.msg(channel, msg)
+
 		if msg.startswith(".player"):
 			player = msg[8:]
 			player = player.strip()
@@ -106,7 +169,7 @@ class XLeagueBot(irc.IRCClient):
 
 
 		if msg.startswith(".players"):
-			msg = "Currently in draft. Type .join to join.\n Players: " + ",".join(map(str,players))
+			msg = "Currently in draft. Type .join to join.\n Players: " + ", ".join(map(str,players))
 			self.msg(channel, msg)
 
 
@@ -125,7 +188,24 @@ class XLeagueBotFactory(protocol.ClientFactory):
 		reactor.stop()
 
 def startdraft():
-	print "Draft would start now."
+	gdb.execute("SELECT MAX(ID) AS max_id FROM games")
+	gamestats = gdb.fetchone()
+	ID = gamestats[0]
+	NEWID = int(ID) + 1
+	draft = [1]
+	results = 0
+	for getplayer in players:
+		pdb.execute("SELECT * FROM players WHERE Name = '%s'" % getplayer)
+		playerstats = pdb.fetchone()
+		player = playerstats[1]
+		draft.append(player)
+	while len(draft) < 9:
+		draft.append("Test")
+	draft.append("Yes", "0")
+	print draft
+	gdb.execute("INSERT INTO games VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)", draft)
+	gamedb.commit()
+	gamedb.close
 
 if __name__ == '__main__':
 	f = XLeagueBotFactory()
