@@ -207,7 +207,7 @@ class XLeagueBot(irc.IRCClient):
 				pdb.execute("SELECT * FROM players WHERE Name = '%s'" % player)
 				playerstats = pdb.fetchone()
 				try:
-					WLR = str(playerstats[4] / playerstats[5] * 100) + "%"
+					WLR = str(int(playerstats[4] / playerstats[3] * 100)) + "%"
 				except ZeroDivisionError:
 					WLR = "N/A"
 				msg = "Stats for " + playerstats[1] + " -" + " Rating: " + str(playerstats[2]) + " - Games Played: " + str(playerstats[3]) + " - Wins: " + str(playerstats[4]) + " - Losses: " + str(playerstats[5]) + " - Win Percentage: " + WLR
@@ -219,6 +219,11 @@ class XLeagueBot(irc.IRCClient):
 		if msg.startswith(".players"):
 			msg = "Players in queue: " + ", ".join(map(str,players))
 			self.msg(channel, msg)
+
+	def userLeft(self, user, channel):
+		global players
+		if user in players:
+			players = players.remove(user)
 
 class XLeagueBotFactory(protocol.ClientFactory):
 
