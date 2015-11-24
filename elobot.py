@@ -11,6 +11,8 @@ import time, sys, json, numbers, datetime, sqlite3, os, string, random
 joined = 0
 players = []
 
+vouchers = ["iScrE4m"]
+
 playdb = sqlite3.connect((os.path.join(os.path.dirname(__file__), "players.db")))
 pdb = playdb.cursor()
 
@@ -40,6 +42,7 @@ class XLeagueBot(irc.IRCClient):
 		global joined
 		global players
 		global pdb
+		global vouchers
 		user = user.split('!', 1)[0]
 
 		if channel == self.nickname:
@@ -218,6 +221,21 @@ class XLeagueBot(irc.IRCClient):
 
 		if msg.startswith(".players"):
 			msg = "Players in queue: " + ", ".join(map(str,players))
+			self.msg(channel, msg)
+
+		if msg.startswith(".vouch"):
+			if user in vouchers:
+				vouched = msg.split()	
+				pdb.execute("SELECT MAX(ID) AS max_id FROM players")
+				playerstats = pdb.fetchone()
+				ID = playerstats[0]
+				NEWID = int(ID) + 1
+				vouched = vouched[1]
+				pdb.execute("INSERT INTO players VALUES (?, ?, 1500, 0, 0, 0)", (NEWID, vouched))
+				playdb.commit()
+				msg = "Succesfully vouched %s" % (vouched)
+			else:
+				msg = "You don't have sufficient permissions to vouch anybody."
 			self.msg(channel, msg)
 
 	def userLeft(self, user, channel):
