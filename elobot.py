@@ -37,6 +37,13 @@ class XLeagueBot(irc.IRCClient):
 
 	def joined(self, channel):
 		print "joined %s" %channel
+		with open(os.path.join(os.path.dirname(__file__), "auth.txt")) as f:
+			auth = f.read().split(',')
+			msg = "auth %s %s" % (auth[0], auth[1])
+			self.msg('AuthServ@Services.GameSurge.net', msg)
+
+	def noticed(self, user, channel, msg):
+		print "Notice from %s: %s" % (user, msg)
 
 	def privmsg(self, user, channel, msg):
 		global joined
@@ -44,6 +51,8 @@ class XLeagueBot(irc.IRCClient):
 		global pdb
 		global vouchers
 		user = user.split('!', 1)[0]
+
+		print "%s in %s: %s" % (user, channel, msg)
 
 		if channel == self.nickname:
 			msg = "Please use #XLeague for commands."
