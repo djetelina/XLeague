@@ -5,8 +5,11 @@ from __future__ import division
 from twisted.words.protocols import irc
 from twisted.internet import reactor, protocol, defer
 from twisted.web.client import getPage
+import pandas.io.sql as sql
+from wordpress_xmlrpc import Client, WordPressPage
+from wordpress_xmlrpc.methods import posts
 
-import time, sys, json, numbers, datetime, sqlite3, os, string, random
+import time, sys, json, numbers, datetime, sqlite3, os, string, random, csv
 
 joined = 0
 players = []
@@ -246,6 +249,14 @@ class XLeagueBot(irc.IRCClient):
 				msg = "You don't have sufficient permissions to vouch anybody."
 			self.msg(channel, msg)
 
+		if msg.startswith(".postdb"):
+			if user in vouchers:
+				postdb(self)
+				msg = "Posting database."
+			else:
+				msg = "You can't do that."
+			self.msg(channel, msg)
+
 	def userLeft(self, user, channel):
 		global players
 		user = user.split('!', 1)[0]
@@ -289,6 +300,31 @@ def startdraft(self):
 	gdb.execute("INSERT INTO games VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)", draft)
 	gamedb.commit()
 	players = []
+
+def postdb(self):
+	global playdb
+	read = sql.read_sql("SELECT Name, ELO, Played, W, L FROM players ORDER BY ELO DESC", playdb)
+	csvpath = (os.path.join(os.path.dirname(__file__), "temp.csv"))
+	read.to_csv(csvpath)
+	with open(os.path.join(os.path.dirname(__file__), "wp.txt")) as f:
+		wplogin = f.read().split(',')
+	with open(csvpath, 'rb') as f:
+		csvfile = csv.reader(f)
+		table = ""
+		for row in csvfile:
+			table += "%s\n"%(str(row))
+
+	table = table.translate(None, '\'[]')
+	timestamp = time.strftime("%d.%m.%Y at %H:%M:%S", time.localtime(time.time()))
+	content = "[table]" + str(table) + "[/table] \n Last update: %s" % (timestamp)
+	wp = Client("http://xleague.djetelina.cz/xmlrpc.php", "%s"%(wplogin[0]), "%s"%(wplogin[1]))
+	page = WordPressPage()
+	page.title = "Leaderboard"
+	page.id = 139
+	page.content = content
+	page.post_status = "publish"
+	wp.call(posts.EditPost(page.id, page))
+
 
 if __name__ == '__main__':
 	f = XLeagueBotFactory()

@@ -1,3 +1,5 @@
 *.db
 *.db-journal
 auth.txt
+wp.txt
+temp.csv
