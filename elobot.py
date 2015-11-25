@@ -113,7 +113,6 @@ class XLeagueBot(irc.IRCClient):
 			if canleave == 1:
 				joined = joined -1
 				players.remove(player)
-				joined = joined - 1
 				msg = "%s left."%(player)
 			else:
 				msg = "I could not find you in draft."
@@ -240,6 +239,7 @@ class XLeagueBot(irc.IRCClient):
 
 	def userLeft(self, user, channel):
 		global players
+		user = user.split('!', 1)[0]
 		if user in players:
 			players = players.remove(user)
 
