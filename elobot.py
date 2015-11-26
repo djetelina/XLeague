@@ -16,7 +16,7 @@ players = []
 
 vouchers = ["iScrE4m"]
 
-playdb = sqlite3.connect((os.path.join(os.path.dirname(__file__), "players.db")))
+playdb = sqlite3.connect((os.path.join(os.path.dirname(__file__), "players.db")), timeout=1)
 pdb = playdb.cursor()
 
 gamedb = sqlite3.connect((os.path.join(os.path.dirname(__file__), "games.db")))
@@ -66,9 +66,10 @@ class XLeagueBot(irc.IRCClient):
 			pdb.execute("SELECT * FROM players WHERE Name = '%s'" % user)
 			playerstats = pdb.fetchone()
 			player = playerstats[1]
+			# check if player isn't already queued
 			canjoin = players.count(player)
 			gdb.execute("SELECT * FROM games WHERE Running = 'Yes'")
-			canjoin2 = gdb.fetchone()
+			canjoin2 = gdb.fetchall()
 			if canjoin2 is not None:
 				if canjoin == 0 and player not in canjoin2:	
 					joined = joined + 1
@@ -133,26 +134,35 @@ class XLeagueBot(irc.IRCClient):
 
 		if msg.startswith(".result"):
 			result = msg.split()
+			# Let's select games that are running
 			gdb.execute("SELECT * from games WHERE Running = 'Yes'")
-			inprogress = gdb.fetchone()
+			inprogress = gdb.fetchall()
+			# If there are games running
 			if inprogress is not None:
+				# If user is reporting matches that he's playing in, let him through
 				if result[1] == user or result[2] == user and user in inprogress:
+					# Define ID of the game, so we know which to edit
 					ID = inprogress[0]
+					# Add 1 to number of games played (reported) for game database
 					DraftPlayed = inprogress[10] + 1
+					# Define who are our players and what score they reported
 					Player1 = result[1]
 					ScoreP1 = int(result[2])
 					Player2 = result[4]
 					ScoreP2 = int(result[3])
+					# Find and define players
 					pdb.execute("SELECT * FROM players WHERE Name = '%s'" % Player1)
 					P1 = pdb.fetchone()
 					pdb.execute("SELECT * FROM players WHERE Name = '%s'" % Player2)
 					P2 = pdb.fetchone()
+					# Add new scores to current wins and losses and games played in database
 					WinsP1 = ScoreP1 + P1[4]
 					WinsP2 = ScoreP2 + P2[4]
 					LossP1 = ScoreP2 + P1[5]
 					LossP2 = ScoreP1 + P2[5]
 					NewPlayedP1 = ScoreP1 + ScoreP2 + P1[3]
 					NewPlayedP2 = ScoreP1 + ScoreP2 + P2[3]
+					# Decide which K rating to assign with based on Games Played
 					if P1[3] <= 20:
 						K1 = 20
 					elif P1[3] > 20 and P1[3] < 40:
@@ -165,43 +175,52 @@ class XLeagueBot(irc.IRCClient):
 						K2 = 15
 					elif P2[3] >= 40:
 						K2 = 10
+					# Calculate expectations for ELO
 					E1 = (1.0 / (1.0 + pow(10, ((P2[2] - P1[2]) / 400))))
 					E2 = 1 - E1
+					# If The first score is higher, Player 1 won
 					if ScoreP1 > ScoreP2:
+						# Calculate new ratings from ELO formula
 						NewRatingP1 = int((P1[2] + K1 * (1 - E1)))
 						NewRatingP2 = int((P2[2] + K2 * (0 - E2)))
+						# Calculate absolute value of rating change
 						ChangeP1 = abs(P1[2] - NewRatingP1)
 						ChangeP2 = abs(P2[2] - NewRatingP2)
-
 						#Converting ratings to Strings for msg
 						NewRatingP1 = str(NewRatingP1)
 						NewRatingP2 = str(NewRatingP2)
 						ChangeP1 = str(ChangeP1)
 						ChangeP2 = str(ChangeP2)
+						# Report to channel new ratings
 						msg = "New Ratings: %s %s (+%s) %s %s (-%s)"%(P1[1], NewRatingP1, ChangeP1, P2[1], NewRatingP2, ChangeP2)
 					elif ScoreP2 > ScoreP1:
+						# Calculate new ratings from ELO formula
 						NewRatingP1 = int((P1[2] + K1 * (0 - E1)))
 						NewRatingP2 = int((P2[2] + K2 * (1 - E2)))
+						# Calculate absolute value of rating change
 						ChangeP1 = abs(P1[2] - NewRatingP1)
 						ChangeP2 = abs(P2[2] - NewRatingP2)
-
 						#Converting ratings to Strings for msg
 						NewRatingP1 = str(NewRatingP1)
 						NewRatingP2 = str(NewRatingP2)
 						ChangeP1 = str(ChangeP1)
 						ChangeP2 = str(ChangeP2)
+						# Report to channel new ratings
 						msg = "New Ratings: %s %s (+%s) %s %s (-%s)"%(P2[1], NewRatingP2, ChangeP2, P1[1], NewRatingP1, ChangeP1)
 					else:
 						msg = "Something horrible happened, results invalid."
-					#And back to INT
+					# Conver rating back to integer for database
 					NewRatingP1 = int(NewRatingP1)
 					NewRatingP2 = int(NewRatingP2)
+					# Update new player scores and stats
 					pdb.execute("UPDATE players SET ELO = %i, Played = %i, W = %i, L = %i WHERE Name = '%s'" % (NewRatingP1, NewPlayedP1, WinsP1, LossP1, P1[1]))
 					pdb.execute("UPDATE players SET ELO = %i, Played = %i, W = %i, L = %i WHERE Name = '%s'" % (NewRatingP2, NewPlayedP2, WinsP2, LossP2, P2[1]))
+					# If all games are finished (7 for 8 player Single Elim), close the game
 					if DraftPlayed == 7:
 						gdb.execute("UPDATE games SET GamesPlayed = %i, Running = 'No' WHERE ID = %i" % (DraftPlayed, ID))
 						ID = str(ID)
 						msg += "\nDraft #%s finished." % (ID)
+					# Otherwise, just increase number of games already played
 					else:
 						gdb.execute("UPDATE games SET GamesPlayed = %i WHERE ID = %i" % (DraftPlayed, ID))
 					playdb.commit()
@@ -211,6 +230,7 @@ class XLeagueBot(irc.IRCClient):
 					msg = "ERROR: You can't report results for other players or you are not in a running game."
 			else:
 				msg = "You are not in a running game."
+			# Encode msg to UTF, twisted doesn't handle Unicode
 			msg = msg.encode('UTF-8', 'replace')
 			self.msg(channel, msg)
 
@@ -303,27 +323,36 @@ def startdraft(self):
 
 def postdb(self):
 	global playdb
+	# read SQL with panda
 	read = sql.read_sql("SELECT Name, ELO, Played, W, L FROM players ORDER BY ELO DESC", playdb)
 	csvpath = (os.path.join(os.path.dirname(__file__), "temp.csv"))
+	# convert and save to csv with pandah
 	read.to_csv(csvpath)
+	# get wordpress login information
 	with open(os.path.join(os.path.dirname(__file__), "wp.txt")) as f:
 		wplogin = f.read().split(',')
+	# open csv and save it to string
 	with open(csvpath, 'rb') as f:
 		csvfile = csv.reader(f)
 		table = ""
 		for row in csvfile:
 			table += "%s\n"%(str(row))
-
+	# get rid of unwanted characters
 	table = table.translate(None, '\'[]')
 	timestamp = time.strftime("%d.%m.%Y at %H:%M:%S", time.localtime(time.time()))
+	# define content of new page, syntax for wordpress title, our string in the middle and Timestamp at the end
 	content = "[table]" + str(table) + "[/table] \n Last update: %s" % (timestamp)
+	# Login to wordpress
 	wp = Client("http://xleague.djetelina.cz/xmlrpc.php", "%s"%(wplogin[0]), "%s"%(wplogin[1]))
+	# Define what are we editing
 	page = WordPressPage()
 	page.title = "Leaderboard"
 	page.id = 139
 	page.content = content
 	page.post_status = "publish"
+	# Edit desired page
 	wp.call(posts.EditPost(page.id, page))
+	playdb.commit()
 
 
 if __name__ == '__main__':
