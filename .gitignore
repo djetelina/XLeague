@@ -3,3 +3,6 @@
 auth.txt
 wp.txt
 temp.csv
+plugins/ELO.pyc
+*.pyc
+log.txt
