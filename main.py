@@ -198,7 +198,7 @@ class XLeagueBot(irc.IRCClient):
 				Played = game['GamesPlayed'] + 1
 				db.GameNewPlayed(Played, ID)
 				if Played == PodGames[game['Pod']]:
-					db.closegame(ID)
+					db.closeGame(ID)
 			else:
 				msg = "You don't have sufficient permissions to report results. Ask a judge to report them for you."
 			SendMsg(self, channel, msg)
