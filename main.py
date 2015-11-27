@@ -149,6 +149,7 @@ class XLeagueBot(irc.IRCClient):
 				GameOpen = 1
 				GameType = msg[1]
 				NeededToStart = int(msg[2])
+				InQueue = 0
 				QueuedPlayers = []
 				msg = "%s for %i players is now open. Type .join to join" % (GameType, NeededToStart)
 			else:
