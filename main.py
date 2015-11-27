@@ -19,7 +19,6 @@ NeededToStart = 8
 QueuedPlayers = []
 PodGames = {2:1, 4:6, 8:12}
 
-time = time.strftime("%H:%M:%S", time.localtime(time.time()))
 
 
 # IRC functions
@@ -87,7 +86,7 @@ class XLeagueBot(irc.IRCClient):
 		if msg.startswith(".leave"):
 			if user in QueuedPlayers:
 				RemoveFromQueue(user)
-				msg = "%s left" % user
+				msg = "%s left the queue" % user
 			else:
 				msg = "You can't leave if you didn't join, silly"
 			SendMsg(self, channel, msg)
@@ -150,6 +149,7 @@ class XLeagueBot(irc.IRCClient):
 				GameOpen = 1
 				GameType = msg[1]
 				NeededToStart = int(msg[2])
+				QueuedPlayers = []
 				msg = "%s for %i players is now open. Type .join to join" % (GameType, NeededToStart)
 			else:
 				msg = "You don't have sufficient permissions to open new game."
@@ -197,7 +197,7 @@ class XLeagueBot(irc.IRCClient):
 				game = db.getGameID(ID)
 				Played = game['GamesPlayed'] + 1
 				db.GameNewPlayed(Played, ID)
-				if game['Pod'] == PodGames[game['Pod']]:
+				if Played == PodGames[game['Pod']]:
 					db.closegame(ID)
 			else:
 				msg = "You don't have sufficient permissions to report results. Ask a judge to report them for you."
@@ -248,6 +248,8 @@ class XLeagueBotFactory(protocol.ClientFactory):
 		print "connection failed:", reason
 		reactor.stop()
 
+# Called functions
+
 def auth(self):
 	with open(os.path.join(os.path.dirname(__file__), "auth.txt")) as f:
 		auth = f.read().split(',')
@@ -259,7 +261,8 @@ def giveOp(self, user):
 	self.msg('ChanServ', msg)
 
 def log(status):
-	status = "[%s] "%time + status
+	timestamp = time.strftime("%H:%M:%S", time.localtime(time.time()))
+	status = "[%s] "%timestamp + status
 	# Adds timestamp, prints and logs current status
 	print status
 	with open(os.path.join(os.path.dirname(__file__), "log.txt"), 'a') as f:
@@ -308,7 +311,7 @@ def StartPod(self):
 	InQueue = 0
 	GameOpen = 0
 	GameType = 0
-	QueuedPlayers = 0
+	QueuedPlayers = []
 	return msg
 
 if __name__ == '__main__':
@@ -318,3 +321,4 @@ if __name__ == '__main__':
 		reactor.run()
 	except Exception as e:
 		print("Error connecting: " + str(e))
+
