@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+# -*- coding: utf-8 -*-
 
 from __future__ import division
 
@@ -356,6 +357,8 @@ def cardprocess(self, channel, data):
 	else:
 		cost = ""
 	text = str.replace(stripCurlyBraces(c["text"].encode("utf-8")), "\n", " ")
+	# Because I'm stupid and can't figure out how to filter out all the wrong characters
+	text = (((text.replace("—", "-")).replace("−", "-")).replace("•", "-"))
 	if "power" in c:
 		power = " [" + c["power"] + "/" + c["toughness"] + "]"
 	else:
