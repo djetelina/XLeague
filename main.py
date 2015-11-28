@@ -257,7 +257,7 @@ class XLeagueBotFactory(protocol.ClientFactory):
 
 def errorHandler(error):
     print "An error has occurred: <%s>" % str(error)
-    log(error)
+    log(str(error))
 
 def auth(self):
 	with open(os.path.join(os.path.dirname(__file__), "auth.txt")) as f:
