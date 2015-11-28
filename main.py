@@ -11,7 +11,7 @@ import plugins.database as db
 import plugins.ELO as elo
 import plugins.wordpress as wordpress
 
-import time, os, string, random, json
+import time, os, string, random, json, re
 
 
 InQueue = 0
@@ -325,10 +325,10 @@ def StartPod(self):
 # .card deferred processing - I hate deferred. So much.
 
 def stripCurlyBraces(s):
-	return str.replace(str.replace(s, "{", ""), "}", "")
+	return re.sub("[{}]","",s)
 
 def fetchCardDataByName(self, channel, name):
-	apiurl = "http://api.deckbrew.com/mtg/cards/" + str.replace(str.replace(str.replace(name.lower(), " ", "-"), ",", ""), "'", "")
+	apiurl = "http://api.deckbrew.com/mtg/cards/" + re.sub("[\'\",]", "", re.sub(" ", "-", name.lower()))
 	card = getPage(apiurl)
 	card.addCallback(cardCallback(self, channel))
 	card.addErrback(errorHandler)
@@ -357,8 +357,7 @@ def cardprocess(self, channel, data):
 	else:
 		cost = ""
 	text = str.replace(stripCurlyBraces(c["text"].encode("utf-8")), "\n", " ")
-	# Because I'm stupid and can't figure out how to filter out all the wrong characters
-	text = (((text.replace("—", "-")).replace("−", "-")).replace("•", "-"))
+	text = re.sub("[—−•]","-",text)
 	if "power" in c:
 		power = " [" + c["power"] + "/" + c["toughness"] + "]"
 	else:
