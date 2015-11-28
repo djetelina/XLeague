@@ -1,15 +1,17 @@
 #!/usr/bin/env python
+# -*- coding: utf-8 -*-
 
 from __future__ import division
 
 from twisted.words.protocols import irc
 from twisted.internet import reactor, protocol, defer
+from twisted.web.client import getPage
 
 import plugins.database as db
 import plugins.ELO as elo
 import plugins.wordpress as wordpress
 
-import time, os, string, random, urllib, json
+import time, os, string, random, json
 
 
 InQueue = 0
@@ -18,15 +20,6 @@ GameType = ""
 NeededToStart = 8
 QueuedPlayers = []
 PodGames = {2:1, 4:6, 8:12}
-
-def stripCurlyBraces(s):
-	return str.replace(str.replace(s, "{", ""), "}", "")
-
-def printCard(c):
-	return c["name"].encode("utf-8") + " ["+ ((" ".join(c["supertypes"]) + " - ") if ("supertypes" in c) else "") + " ".join(c["types"]) + ((" - " + " ".join(c["subtypes"])) if ("subtypes" in c) else "") + "] " + ( ("(" + stripCurlyBraces(c["cost"].encode("utf-8")) + ") ") if (len(c["cost"]) > 0) else "") + str.replace(stripCurlyBraces(c["text"].encode("utf-8")), "\n", " ") + ((" [" + c["power"] + "/" + c["toughness"] + "]") if ("power" in c) else "")
-
-def fetchCardDataByName(name):
-	return json.loads(urllib.urlopen("http://api.deckbrew.com/mtg/cards/" str.replace(str.replace(str.replace(name.lower(), " ", "-"), ",", ""), "'", "")).read())
 
 # IRC functions
 
@@ -118,6 +111,10 @@ class XLeagueBot(irc.IRCClient):
 			except TypeError:
 				msg = "No player named '%s' found" % player
 			SendMsg(self, channel, msg)
+		
+		if msg.startswith(".card"):
+			card = msg.split(" ",1)[1]
+			fetchCardDataByName(self, channel, card)
 
 		if msg.startswith(".help"):
 			channel = user
@@ -126,6 +123,7 @@ class XLeagueBot(irc.IRCClient):
 			msg += ".leave ~~~ Leaves Queue you were in\n"
 			msg += ".players ~~~ Lists players queued for an open game\n"
 			msg += ".player <nick> ~~~ Gets stats of player\n"
+			msg += ".card <CardName> ~~~ Gets details of a card\n"
 			judge = db.getPlayer(user)
 			if judge['Judge'] == 1:
 				msg += "===== JUDGE COMMANDS ====="
@@ -233,12 +231,6 @@ class XLeagueBot(irc.IRCClient):
 			else:
 				msg = "Only admin can promote players."
 			SendMsg(self, channel, msg)
-			
-		# print card details
-		
-		if msg.startswith(".card"):
-			SendMsg(self, channel, printCard(fetchCardDataByName(msg.split(" ",1)[1])))
-
 
 	def userLeft(self, user, channel):
 		global QueuedPlayers
@@ -262,6 +254,9 @@ class XLeagueBotFactory(protocol.ClientFactory):
 		reactor.stop()
 
 # Called functions
+
+def errorHandler(error):
+    print "An error has occurred: <%s>" % str(error)
 
 def auth(self):
 	with open(os.path.join(os.path.dirname(__file__), "auth.txt")) as f:
@@ -326,6 +321,51 @@ def StartPod(self):
 	GameType = 0
 	QueuedPlayers = []
 	return msg
+
+# .card deferred processing - I hate deferred. So much.
+
+def stripCurlyBraces(s):
+	return str.replace(str.replace(s, "{", ""), "}", "")
+
+def fetchCardDataByName(self, channel, name):
+	apiurl = "http://api.deckbrew.com/mtg/cards/" + str.replace(str.replace(str.replace(name.lower(), " ", "-"), ",", ""), "'", "")
+	card = getPage(apiurl)
+	card.addCallback(cardCallback(self, channel))
+	card.addErrback(errorHandler)
+
+# Returning a function with only one input allows us to get more variables from callback which we need to succesfully send a msg after the fetching is done
+
+def cardCallback(self, channel):
+	def callprocess(data):
+		tocall = cardprocess(self, channel, data)
+	return callprocess
+
+def cardprocess(self, channel, data):
+	c = json.loads(data)
+	name = c["name"].encode("utf-8")
+	if "supertypes" in c:
+		supertypes = " ".join(c["supertypes"]) + " - "
+	else:
+		supertypes = ""
+	types = " ".join(c["types"])
+	if "subtypes" in c:
+		subtypes = " - " + " ".join(c["subtypes"])
+	else:
+		subtypes = ""
+	if len(c["cost"]) > 0:
+		cost = "(" + stripCurlyBraces(c["cost"].encode("utf-8")) + ") "
+	else:
+		cost = ""
+	text = str.replace(stripCurlyBraces(c["text"].encode("utf-8")), "\n", " ")
+	# Because I'm stupid and can't figure out how to filter out all the wrong characters
+	text = (((text.replace("—", "-")).replace("−", "-")).replace("•", "-"))
+	if "power" in c:
+		power = " [" + c["power"] + "/" + c["toughness"] + "]"
+	else:
+		power = ""
+	msg = name + " [" + supertypes + types + subtypes + "] " + cost + "\n" + text + power
+	SendMsg(self, channel, msg)
+
 
 if __name__ == '__main__':
 	f = XLeagueBotFactory()
