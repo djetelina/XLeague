@@ -126,7 +126,7 @@ class XLeagueBot(irc.IRCClient):
 			msg += ".card <CardName> ~~~ Gets details of a card\n"
 			judge = db.getPlayer(user)
 			if judge['Judge'] == 1:
-				msg += "===== JUDGE COMMANDS ====="
+				msg += "===== JUDGE COMMANDS =====\n"
 				msg += ".vouch <nick> ~~~ Vouches player\n"
 				msg += ".open <GameType> <Players> ~~~ Opens a draft/sealed for number of players\n"
 				msg += ".close <GameID> ~~~ Closes game\n"
@@ -257,6 +257,7 @@ class XLeagueBotFactory(protocol.ClientFactory):
 
 def errorHandler(error):
     print "An error has occurred: <%s>" % str(error)
+    log(error)
 
 def auth(self):
 	with open(os.path.join(os.path.dirname(__file__), "auth.txt")) as f:
@@ -373,4 +374,5 @@ if __name__ == '__main__':
 		reactor.run()
 	except Exception as e:
 		print("Error connecting: " + str(e))
+		log(e)
 
