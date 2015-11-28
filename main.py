@@ -255,7 +255,6 @@ class XLeagueBotFactory(protocol.ClientFactory):
 # Called functions
 
 def errorHandler(error):
-    # this isn't a very effective handling of the error, we just print it out:
     print "An error has occurred: <%s>" % str(error)
 
 def auth(self):
@@ -342,7 +341,26 @@ def cardCallback(self, channel):
 
 def cardprocess(self, channel, data):
 	c = json.loads(data)
-	msg = c["name"].encode("utf-8") + " ["+ ((" ".join(c["supertypes"]) + " - ") if ("supertypes" in c) else "") + " ".join(c["types"]) + ((" - " + " ".join(c["subtypes"])) if ("subtypes" in c) else "") + "] " + ( ("(" + stripCurlyBraces(c["cost"].encode("utf-8")) + ") ") if (len(c["cost"]) > 0) else "") + "\n" +  str.replace(stripCurlyBraces(c["text"].encode("utf-8")), "\n", " ") + ((" [" + c["power"] + "/" + c["toughness"] + "]") if ("power" in c) else "")
+	name = c["name"].encode("utf-8")
+	if "supertypes" in c:
+		supertypes = " ".join(c["supertypes"]) + " - "
+	else:
+		supertypes = ""
+	types = " ".join(c["types"])
+	if "subtypes" in c:
+		subtypes = " - " + " ".join(c["subtypes"])
+	else:
+		subtypes = ""
+	if len(c["cost"]) > 0:
+		cost = "(" + stripCurlyBraces(c["cost"].encode("utf-8")) + ") "
+	else:
+		cost = ""
+	text = str.replace(stripCurlyBraces(c["text"].encode("utf-8")), "\n", " ")
+	if "power" in c:
+		power = " [" + c["power"] + "/" + c["toughness"] + "]"
+	else:
+		power = ""
+	msg = name + " [" + supertypes + types + subtypes + "] " + cost + "\n" + text + power
 	SendMsg(self, channel, msg)
 
 
