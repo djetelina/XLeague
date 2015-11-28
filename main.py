@@ -11,8 +11,10 @@ import plugins.database as db
 import plugins.ELO as elo
 import plugins.wordpress as wordpress
 
-import time, os, string, random, json, re
+import time, os, string, random, json, re, sys
 
+reload(sys)
+sys.setdefaultencoding('utf-8')
 
 InQueue = 0
 GameOpen = 0
@@ -273,6 +275,7 @@ def log(status):
 	timestamp = time.strftime("%H:%M:%S", time.localtime(time.time()))
 	status = "[%s] "%timestamp + status
 	# Adds timestamp, prints and logs current status
+	status = status.encode('utf-8', errors='replace')
 	print status
 	with open(os.path.join(os.path.dirname(__file__), "log.txt"), 'a') as f:
 		f.write("%s\n" % status)
@@ -281,7 +284,7 @@ def SendMsg(self, channel, msg):
 	status = "Sending message to %s: %s" % (channel, msg)
 	msg = msg.encode('UTF-8', 'replace')
 	self.msg(channel, msg)
-	log (status)
+	log(status)
 
 def AddToQueue(player):
 	global InQueue
@@ -343,7 +346,7 @@ def cardCallback(self, channel):
 
 def cardprocess(self, channel, data):
 	c = json.loads(data)
-	name = c["name"].encode("utf-8")
+	name = c["name"]
 	if "supertypes" in c:
 		supertypes = " ".join(c["supertypes"]) + " - "
 	else:
@@ -354,11 +357,10 @@ def cardprocess(self, channel, data):
 	else:
 		subtypes = ""
 	if len(c["cost"]) > 0:
-		cost = "(" + stripCurlyBraces(c["cost"].encode("utf-8")) + ") "
+		cost = "(" + stripCurlyBraces(c["cost"]) + ") "
 	else:
 		cost = ""
-	text = str.replace(stripCurlyBraces(c["text"].encode("utf-8")), "\n", " ")
-	text = re.sub("[—−•]","-",text)
+	text = re.sub("\n", " ", stripCurlyBraces(c["text"]))
 	if "power" in c:
 		power = " [" + c["power"] + "/" + c["toughness"] + "]"
 	else:
