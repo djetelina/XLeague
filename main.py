@@ -9,7 +9,7 @@ import plugins.database as db
 import plugins.ELO as elo
 import plugins.wordpress as wordpress
 
-import time, os, string, random
+import time, os, string, random, urllib, json
 
 
 InQueue = 0
@@ -19,7 +19,14 @@ NeededToStart = 8
 QueuedPlayers = []
 PodGames = {2:1, 4:6, 8:12}
 
+def stripCurlyBraces(s):
+	return str.replace(str.replace(s, "{", ""), "}", "")
 
+def printCard(c):
+	return c["name"].encode("utf-8") + " ["+ ((" ".join(c["supertypes"]) + " - ") if ("supertypes" in c) else "") + " ".join(c["types"]) + ((" - " + " ".join(c["subtypes"])) if ("subtypes" in c) else "") + "] " + ( ("(" + stripCurlyBraces(c["cost"].encode("utf-8")) + ") ") if (len(c["cost"]) > 0) else "") + str.replace(stripCurlyBraces(c["text"].encode("utf-8")), "\n", " ") + ((" [" + c["power"] + "/" + c["toughness"] + "]") if ("power" in c) else "")
+
+def fetchCardDataByName(name):
+	return json.loads(urllib.urlopen("http://api.deckbrew.com/mtg/cards/" str.replace(str.replace(str.replace(name.lower(), " ", "-"), ",", ""), "'", "")).read())
 
 # IRC functions
 
@@ -226,6 +233,11 @@ class XLeagueBot(irc.IRCClient):
 			else:
 				msg = "Only admin can promote players."
 			SendMsg(self, channel, msg)
+			
+		# print card details
+		
+		if msg.startswith(".card"):
+			SendMsg(self, channel, printCard(fetchCardDataByName(msg.split(" ",1)[1])))
 
 
 	def userLeft(self, user, channel):
