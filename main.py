@@ -118,6 +118,28 @@ class XLeagueBot(irc.IRCClient):
 			card = msg.split(" ",1)[1]
 			fetchCardDataByName(self, channel, card)
 
+		if msg.startswith(".games"):
+			running = db.getRunning()
+			print running
+			if not running:
+				msg = "No games are in progress."
+			else:
+				msg = "Games in progress "
+				for row in running:
+					msg += "| #%s " % str(row[0])
+			SendMsg(self, channel, msg)
+
+		if msg.startswith(".info"):
+			ID = msg.split()
+			ID = int(ID[1])
+			game = db.getGameID(ID)
+			if game is not None:
+				msg = "Game #%i - Running: %s - Type: %s - Pod size: %i - Games Played: %i - Players: %s, %s, %s, %s, %s, %s, %s, %s" % (game['ID'], game['Running'], game['GameType'], game['Pod'], game['GamesPlayed'], game['Player 1'], game['Player 2'], game['Player 3'], game['Player 4'], game['Player 5'], game['Player 6'], game['Player 7'], game['Player 8'])
+				msg = msg.replace(", None", "")
+			else:
+				msg = "There is no game with ID %i" % ID
+			SendMsg(self, channel, msg)
+
 		if msg.startswith(".help"):
 			channel = user
 			msg = "My commands:\n"
@@ -125,13 +147,15 @@ class XLeagueBot(irc.IRCClient):
 			msg += ".leave ~~~ Leaves Queue you were in\n"
 			msg += ".players ~~~ Lists players queued for an open game\n"
 			msg += ".player <nick> ~~~ Gets stats of player\n"
+			msg += ".games ~~~ Lists IDs of running games\n"
+			msg += ".info <GameID> ~~~ Gets info about game\n"
 			msg += ".card <CardName> ~~~ Gets details of a card\n"
 			judge = db.getPlayer(user)
 			if judge['Judge'] == 1:
 				msg += "===== JUDGE COMMANDS =====\n"
 				msg += ".vouch <nick> ~~~ Vouches player\n"
 				msg += ".open <GameType> <Players> ~~~ Opens a draft/sealed for number of players\n"
-				msg += ".close <GameID> ~~~ Closes game\n"
+				msg += ".close <GameID> ~~~ Closes game (Used for games in database, NOT for queues)\n"
 				msg += ".result <GameID> <Winner> <WinnerScore> <LoserScore> <Loser> ~~~ Reports a result for GameID.\n"
 				msg += ".updateleader ~~~ Updates leaderboard on the website\n"
 			SendMsg(self, channel, msg)
@@ -207,6 +231,7 @@ class XLeagueBot(irc.IRCClient):
 				db.GameNewPlayed(Played, ID)
 				if Played == PodGames[game['Pod']]:
 					db.closeGame(ID)
+					msg += "Game %i ended." % (str(ID))
 			else:
 				msg = "You don't have sufficient permissions to report results. Ask a judge to report them for you."
 			SendMsg(self, channel, msg)
@@ -372,6 +397,7 @@ def cardprocess(self, channel, data):
 if __name__ == '__main__':
 	f = XLeagueBotFactory()
 	try:
+		log("Connecting")
 		reactor.connectTCP("irc.gamesurge.net", 6667, f)
 		reactor.run()
 	except Exception as e:
