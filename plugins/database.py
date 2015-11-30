@@ -9,12 +9,12 @@ database.row_factory = sqlite3.Row
 db  = database.cursor()
 
 def getPlayer(player):
-	db.execute("SELECT * FROM players WHERE Name = '%s'" % player)
+	db.execute("SELECT * FROM players WHERE Name = '%s' COLLATE NOCASE" % player)
 	playerstats = dict(db.fetchone())
 	return playerstats
 
 def ratingChange(Name, ELO, Played, W, L):
-	db.execute("UPDATE players SET ELO = %i, Played = %i, W = %i, L = %i WHERE Name = '%s'" % (ELO, Played, W, L, Name))
+	db.execute("UPDATE players SET ELO = %i, Played = %i, W = %i, L = %i WHERE Name = '%s' COLLATE NOCASE" % (ELO, Played, W, L, Name))
 	database.commit()
 
 def vouchPlayer(vouched):
@@ -26,7 +26,7 @@ def vouchPlayer(vouched):
 	database.commit()
 
 def makeJudge(judge):
-	db.execute("UPDATE players SET Judge = 1 WHERE Name = '%s'" % (judge)) 
+	db.execute("UPDATE players SET Judge = 1 WHERE Name = '%s' COLLATE NOCASE" % (judge)) 
 	database.commit()
 
 def getRunning():
