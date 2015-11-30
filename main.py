@@ -231,7 +231,7 @@ class XLeagueBot(irc.IRCClient):
 				db.GameNewPlayed(Played, ID)
 				if Played == PodGames[game['Pod']]:
 					db.closeGame(ID)
-					msg += "Game %i ended." % ID
+					msg += "\nGame %i ended." % ID
 			else:
 				msg = "You don't have sufficient permissions to report results. Ask a judge to report them for you."
 			SendMsg(self, channel, msg)
@@ -331,9 +331,7 @@ def StartPod(self):
 	# Generating password to send to players
 	password = ''.join(random.SystemRandom().choice(string.ascii_uppercase + string.digits) for _ in range(7))
 	# Send each player the password and add him to database
-	print QueuedPlayers
 	for queued in QueuedPlayers:
-		print queued
 		Pod.append(queued)
 		msg = "Your %s has started. Password: '%s'" % (GameType, password)
 		queued = queued.encode('UTF-8', 'replace')
