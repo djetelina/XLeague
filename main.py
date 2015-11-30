@@ -231,7 +231,7 @@ class XLeagueBot(irc.IRCClient):
 				db.GameNewPlayed(Played, ID)
 				if Played == PodGames[game['Pod']]:
 					db.closeGame(ID)
-					msg += "Game %i ended." % (str(ID))
+					msg += "Game %i ended." % ID
 			else:
 				msg = "You don't have sufficient permissions to report results. Ask a judge to report them for you."
 			SendMsg(self, channel, msg)
@@ -283,7 +283,6 @@ class XLeagueBotFactory(protocol.ClientFactory):
 # Called functions
 
 def errorHandler(error):
-    print "An error has occurred: <%s>" % str(error)
     log(str(error))
 
 def auth(self):

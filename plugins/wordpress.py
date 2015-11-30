@@ -26,7 +26,7 @@ def updateLeader():
 			table += "%s\n"%(str(row))
 	# get rid of unwanted characters
 	table = table.translate(None, '\'[]')
-	timestamp = time.strftime("%d.%m.%Y at %H:%M:%S", time.localtime(time.time()))
+	timestamp = time.strftime("%d.%m.%Y at %H:%M:%SCET", time.localtime(time.time()))
 	# define content of new page, syntax for wordpress title, our string in the middle and Timestamp at the end
 	content = "[table]" + str(table) + "[/table] \n Last update: %s" % (timestamp)
 	# Login to wordpress
