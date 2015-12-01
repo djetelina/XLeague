@@ -120,7 +120,6 @@ class XLeagueBot(irc.IRCClient):
 
 		if msg.startswith(".games"):
 			running = db.getRunning()
-			print running
 			if not running:
 				msg = "No games are in progress."
 			else:

@@ -12,7 +12,7 @@ database = sqlite3.connect(os.path.join(script_dir, rel_path), timeout=1)
 login = (os.path.join(os.path.dirname(__file__), "wordpress/wp.txt"))
 
 def updateLeader():
-	read = sql.read_sql("SELECT Name, ELO, Played, W, L FROM players ORDER BY ELO DESC", database)
+	read = sql.read_sql("SELECT Name, ELO, Played, W, L FROM players WHERE Played > 0 ORDER BY ELO DESC", database)
 	csvpath = (os.path.join(os.path.dirname(__file__), "wordpress/temp.csv"))
 	read.to_csv(csvpath)
 	# get wordpress login information

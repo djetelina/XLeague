@@ -9,12 +9,12 @@ database.row_factory = sqlite3.Row
 db  = database.cursor()
 
 def getPlayer(player):
-	db.execute("SELECT * FROM players WHERE Name = ? COLLATE NOCASE", player)
+	db.execute("SELECT * FROM players WHERE Name = ? COLLATE NOCASE", (player,))
 	playerstats = dict(db.fetchone())
 	return playerstats
 
 def ratingChange(Name, ELO, Played, W, L):
-	db.execute("UPDATE players SET ELO = ?, Played = ?, W = ?, L = ? WHERE Name = ? COLLATE NOCASE", ELO, Played, W, L, Name)
+	db.execute("UPDATE players SET ELO = ?, Played = ?, W = ?, L = ? WHERE Name = ? COLLATE NOCASE", (ELO, Played, W, L, Name))
 	database.commit()
 
 def vouchPlayer(vouched):
@@ -26,7 +26,7 @@ def vouchPlayer(vouched):
 	database.commit()
 
 def makeJudge(judge):
-	db.execute("UPDATE players SET Judge = 1 WHERE Name = ? COLLATE NOCASE", judge) 
+	db.execute("UPDATE players SET Judge = 1 WHERE Name = ? COLLATE NOCASE", (judge,)) 
 	database.commit()
 
 def getRunning():
@@ -35,15 +35,15 @@ def getRunning():
 	return running
 
 def GameNewPlayed(Played, ID):
-	db.execute("UPDATE games set GamesPlayed = ? WHERE ID = ?", Played, ID)
+	db.execute("UPDATE games set GamesPlayed = ? WHERE ID = ?", (Played, ID))
 	database.commit()
 
 def closeGame(ID):
-	db.execute("UPDATE games set Running = 'No' WHERE ID = ?", ID)
+	db.execute("UPDATE games set Running = 'No' WHERE ID = ?", (ID,))
 	database.commit()
 
 def getGameID(ID):
-	db.execute("SELECT * FROM games WHERE ID = ?", ID)
+	db.execute("SELECT * FROM games WHERE ID = ?", (ID,))
 	ID = db.fetchone()
 	return ID
 
