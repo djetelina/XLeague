@@ -5,3 +5,11 @@ wp.txt
 temp.csv
 *.pyc
 log.txt
+.idea/.name
+.idea/modules.xml
+.idea/misc.xml
+.idea/workspace.xml
+.idea/encodings.xml
+.idea/XLeague.iml
+.idea/dictionaries/David.xml
+.idea/vcs.xml
