@@ -2,15 +2,23 @@
 # -*- coding: utf-8 -*-
 
 from __future__ import division
-from twisted.words.protocols import irc
-from twisted.internet import reactor, protocol, defer
+import json
+import os
+import random
+import re
+import string
+import sys
+import time
+from twisted.internet import reactor, protocol
 from twisted.web.client import getPage
+from twisted.words.protocols import irc
+from twisted.internet.threads import deferToThread
+import plugins.ELO as ELO
 import plugins.database as db
-import plugins.ELO as elo
 import plugins.wordpress as wordpress
-import time, os, string, random, json, re, sys
 
 reload(sys)
+# noinspection PyUnresolvedReferences
 sys.setdefaultencoding('utf-8')
 
 InQueue = 0
@@ -22,12 +30,18 @@ PodGames = {2: 1, 4: 6, 8: 12}
 
 
 # IRC functions
+def clientinput(XLeagueBot):
+    while True:
+        msg = raw_input()
+        XLeagueBot.clientmsg("#xleague", msg)
 
+# noinspection PyClassHasNoInit,PyClassHasNoInit,PyAbstractClass
 class XLeagueBot(irc.IRCClient):
     nickname = "XLeagueBot"
 
     def connectionMade(self):
         irc.IRCClient.connectionMade(self)
+        deferToThread(clientinput, self)
 
     def connectionLost(self, reason):
         irc.IRCClient.connectionLost(self, reason)
@@ -36,7 +50,7 @@ class XLeagueBot(irc.IRCClient):
         self.join(self.factory.channel)
 
     def joined(self, channel):
-        status = "Joined %s" % (channel)
+        status = "Joined %s" % channel
         log(status)
         auth(self)
 
@@ -104,18 +118,18 @@ class XLeagueBot(irc.IRCClient):
             try:
                 stats = db.getplayer(player)
                 try:
-                    WLR = str(int(stats['W'] / stats['Played'] * 100)) + "%"
+                    wlr = str(int(stats['W'] / stats['Played'] * 100)) + "%"
                 except ZeroDivisionError:
-                    WLR = "N/A"
+                    wlr = "N/A"
                 msg = "Stats for %s - Rating: %i - Games Played: %i - Wins: %i - Losses: %i - WLR: %s" % (
-                stats['Name'], stats['ELO'], stats['Played'], stats['W'], stats['L'], WLR)
+                    stats['Name'], stats['ELO'], stats['Played'], stats['W'], stats['L'], wlr)
             except TypeError:
                 msg = "No player named '%s' found" % player
             sendmsg(self, channel, msg)
 
         if msg.startswith(".card"):
             card = msg.split(" ", 1)[1]
-            fetchCardDataByName(self, channel, card)
+            fetchcarddatabyname(self, channel, card)
 
         if msg.startswith(".games"):
             running = db.getrunning()
@@ -128,17 +142,18 @@ class XLeagueBot(irc.IRCClient):
             sendmsg(self, channel, msg)
 
         if msg.startswith(".info"):
-            ID = msg.split()
-            ID = int(ID[1])
-            game = db.getgameid(ID)
+            id = msg.split()
+            id = int(id[1])
+            game = db.getgameid(id)
             if game is not None:
+                # noinspection PyPep8
                 msg = "Game #%i - Running: %s - Type: %s - Pod size: %i - Games Played: %i - Players: %s, %s, %s, %s, %s, %s, %s, %s" % (
-                game['ID'], game['Running'], game['GameType'], game['Pod'], game['GamesPlayed'], game['Player 1'],
-                game['Player 2'], game['Player 3'], game['Player 4'], game['Player 5'], game['Player 6'],
-                game['Player 7'], game['Player 8'])
+                    game['ID'], game['Running'], game['GameType'], game['Pod'], game['GamesPlayed'], game['Player 1'],
+                    game['Player 2'], game['Player 3'], game['Player 4'], game['Player 5'], game['Player 6'],
+                    game['Player 7'], game['Player 8'])
                 msg = msg.replace(", None", "")
             else:
-                msg = "There is no game with ID %i" % ID
+                msg = "There is no game with ID %i" % id
             sendmsg(self, channel, msg)
 
         if msg.startswith(".help"):
@@ -169,7 +184,7 @@ class XLeagueBot(irc.IRCClient):
                 vouched = msg.split()
                 vouched = vouched[1]
                 db.vouchplayer(vouched)
-                msg = "Succesfully vouched %s" % (vouched)
+                msg = "Succesfully vouched %s" % vouched
             else:
                 msg = "You don't have sufficient permissions to vouch anybody"
             sendmsg(self, channel, msg)
@@ -192,8 +207,8 @@ class XLeagueBot(irc.IRCClient):
             judge = db.getplayer(user)
             if judge['Judge'] == 1:
                 msg = msg.split()
-                ID = int(msg[1])
-                db.closegame(ID)
+                id = int(msg[1])
+                db.closegame(id)
                 msg = "Game closed."
             else:
                 msg = "You don't have sufficient permissions to clos games."
@@ -203,37 +218,37 @@ class XLeagueBot(irc.IRCClient):
             judge = db.getplayer(user)
             if judge['Judge'] == 1:
                 result = msg.split()
-                ID = int(result[1])
+                id = int(result[1])
 
-                Winner = result[2]
-                Winnerdict = db.getplayer(Winner)
-                PlayedW = Winnerdict['Played'] + 1
-                WW = Winnerdict['W'] + 1
-                LW = Winnerdict['L']
+                winner = result[2]
+                winnerdict = db.getplayer(winner)
+                playedw = winnerdict['Played'] + 1
+                ww = winnerdict['W'] + 1
+                lw = winnerdict['L']
 
-                Loser = result[5]
-                Loserdict = db.getplayer(Loser)
-                PlayedL = Loserdict['Played'] + 1
-                WL = Loserdict['W']
-                LL = Loserdict['L'] + 1
+                loser = result[5]
+                loserdict = db.getplayer(loser)
+                playedl = loserdict['Played'] + 1
+                wl = loserdict['W']
+                ll = loserdict['L'] + 1
 
-                WinnerELO = elo.newelo("W", Winnerdict, Loserdict)
-                LoserELO = elo.newelo("L", Winnerdict, Loserdict)
-                ChangeWinner = WinnerELO - Winnerdict['ELO']
-                ChangeLoser = LoserELO - Loserdict['ELO']
+                winnerelo = ELO.newelo("W", winnerdict, loserdict)
+                loserelo = ELO.newelo("L", winnerdict, loserdict)
+                changewinner = winnerelo - winnerdict['ELO']
+                changeloser = loserelo - loserdict['ELO']
 
                 msg = "New Ratings: %s %i [+%i] %s %i [%i]" % (
-                Winner, WinnerELO, ChangeWinner, Loser, LoserELO, ChangeLoser)
+                    winner, winnerelo, changewinner, loser, loserelo, changeloser)
 
-                db.ratingchange(Winner, WinnerELO, PlayedW, WW, LW)
-                db.ratingchange(Loser, LoserELO, PlayedL, WL, LL)
+                db.ratingchange(winner, winnerelo, playedw, ww, lw)
+                db.ratingchange(loser, loserelo, playedl, wl, ll)
 
-                game = db.getgameid(ID)
-                Played = game['GamesPlayed'] + 1
-                db.gamenewplayed(Played, ID)
-                if Played == PodGames[game['Pod']]:
-                    db.closegame(ID)
-                    msg += "\nGame #%i ended." % ID
+                game = db.getgameid(id)
+                played = game['GamesPlayed'] + 1
+                db.gamenewplayed(played, id)
+                if played == PodGames[game['Pod']]:
+                    db.closegame(id)
+                    msg += "\nGame #%i ended." % id
             else:
                 msg = "You don't have sufficient permissions to report results. Ask a judge to report them for you."
             sendmsg(self, channel, msg)
@@ -255,8 +270,8 @@ class XLeagueBot(irc.IRCClient):
                 judge = msg.split()
                 judge = judge[1]
                 db.makejudge(judge)
-                giveOp(self, judge)
-                msg = "%s is now Judge" % (judge)
+                giveop(self, judge)
+                msg = "%s is now Judge" % judge
             else:
                 msg = "Only admin can promote players."
             sendmsg(self, channel, msg)
@@ -268,6 +283,10 @@ class XLeagueBot(irc.IRCClient):
         if user in QueuedPlayers:
             removefromqueue(user)
 
+    def clientmsg(self, channel, message):
+        reactor.callFromThread(self.msg, channel, message)
+        status = "XLeagueBot in %s: %s" % (channel, message)
+
 
 class XLeagueBotFactory(protocol.ClientFactory):
     protocol = XLeagueBot
@@ -278,25 +297,25 @@ class XLeagueBotFactory(protocol.ClientFactory):
     def clientConnectionLost(self, connector, reason):
         connector.connect()
 
+    # noinspection PyUnresolvedReferences
     def clientConnectionFailed(self, connector, reason):
         print "connection failed:", reason
         reactor.stop()
 
 
 # Called functions
-
-def errorHandler(error):
+def errorhandler(error):
     log(str(error))
 
 
 def auth(self):
-    with open(os.path.join(os.path.dirname(__file__), "auth.txt")) as f:
-        auth = f.read().split(',')
-        msg = "auth %s %s" % (auth[0], auth[1])
+    with open(os.path.join(os.path.dirname(__file__), "auth.txt")) as authfile:
+        logininfo = authfile.read().split(',')
+        msg = "auth %s %s" % (logininfo[0], logininfo[1])
         self.msg('AuthServ@Services.GameSurge.net', msg)
 
 
-def giveOp(self, user):
+def giveop(self, user):
     msg = "addop #xLeague %s" % user
     self.msg('ChanServ', msg)
 
@@ -320,13 +339,13 @@ def sendmsg(self, channel, msg):
 
 def addtoqueue(player):
     global InQueue
-    InQueue = InQueue + 1
+    InQueue += 1
     QueuedPlayers.append(player)
 
 
 def removefromqueue(player):
     global InQueue
-    InQueue = InQueue - 1
+    InQueue -= 1
     QueuedPlayers.remove(player)
 
 
@@ -335,22 +354,22 @@ def startpod(self):
     global GameOpen
     global GameType
     global QueuedPlayers
-    ID = db.getgamenewid()
+    id = db.getgamenewid()
     # Creating list for new database entry with new ID, is running and 0 games played, Pod, Type
-    Pod = [ID, "Yes", 0, NeededToStart, GameType]
+    pod = [id, "Yes", 0, NeededToStart, GameType]
     # Generating password to send to players
     password = ''.join(random.SystemRandom().choice(string.ascii_uppercase + string.digits) for _ in range(7))
     # Send each player the password and add him to database
     for queued in QueuedPlayers:
-        Pod.append(queued)
+        pod.append(queued)
         msg = "Your %s has started. Password: '%s'" % (GameType, password)
         queued = queued.encode('UTF-8', 'replace')
         sendmsg(self, queued, msg)
     # If pod has fewer than 8 people, this will make sure we give enough data to the database
-    while len(Pod) < 13:
-        Pod.append("None")
-    db.creategame(Pod)
-    msg = "Game #%i - %s is starting" % (ID, GameType)
+    while len(pod) < 13:
+        pod.append("None")
+    db.creategame(pod)
+    msg = "Game #%i - %s is starting" % (id, GameType)
     # Close queuing
     InQueue = 0
     GameOpen = 0
@@ -361,22 +380,23 @@ def startpod(self):
 
 # .card deferred processing - I hate deferred. So much.
 
-def stripCurlyBraces(s):
+def stripcurlybraces(s):
     return re.sub("[{}]", "", s)
 
 
-def fetchCardDataByName(self, channel, name):
+def fetchcarddatabyname(self, channel, name):
     apiurl = "http://api.deckbrew.com/mtg/cards/" + re.sub("[\'\",]", "", re.sub(" ", "-", name.lower()))
     card = getPage(apiurl)
     card.addCallback(cardcallback(self, channel))
-    card.addErrback(errorHandler)
+    card.addErrback(errorhandler)
 
 
-# Returning a function with only one input allows us to get more variables from callback which we need to succesfully send a msg after the fetching is done
+# Returning a function with only one input allows us to get more variables from callback
+# which we need to succesfully send a msg after the fetching is done
 
 def cardcallback(self, channel):
     def callprocess(data):
-        tocall = cardprocess(self, channel, data)
+        cardprocess(self, channel, data)
 
     return callprocess
 
@@ -394,10 +414,10 @@ def cardprocess(self, channel, data):
     else:
         subtypes = ""
     if len(c["cost"]) > 0:
-        cost = "(" + stripCurlyBraces(c["cost"]) + ") "
+        cost = "(" + stripcurlybraces(c["cost"]) + ") "
     else:
         cost = ""
-    text = re.sub("\n", " ", stripCurlyBraces(c["text"]))
+    text = re.sub("\n", " ", stripcurlybraces(c["text"]))
     if "power" in c:
         power = " [" + c["power"] + "/" + c["toughness"] + "]"
     else:
@@ -410,8 +430,10 @@ if __name__ == '__main__':
     f = XLeagueBotFactory()
     try:
         log("Connecting")
+        # noinspection PyUnresolvedReferences
         reactor.connectTCP("irc.gamesurge.net", 6667, f)
+        # noinspection PyUnresolvedReferences
         reactor.run()
     except Exception as e:
         print("Error connecting: " + str(e))
-        log(e)
+        log(str(e))

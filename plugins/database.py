@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 
-import sqlite3, os
+import os
+import sqlite3
 
 script_dir = os.path.dirname(__file__)
 rel_path = "database/main.db"
@@ -15,18 +16,18 @@ def getplayer(player):
     return playerstats
 
 
-def ratingchange(Name, ELO, Played, W, L):
+def ratingchange(name, elo, played, w, l):
     db.execute("UPDATE players SET ELO = ?, Played = ?, W = ?, L = ? WHERE Name = ? COLLATE NOCASE",
-               (ELO, Played, W, L, Name))
+               (elo, played, w, l, name))
     database.commit()
 
 
 def vouchplayer(vouched):
     db.execute("SELECT MAX(ID) AS max_id FROM players")
     player = db.fetchone()
-    ID = player[0]
-    NewID = ID + 1
-    db.execute("INSERT INTO players VALUES (?, ?, 0, 1500, 0, 0, 0)", (NewID, vouched))
+    id = player[0]
+    newid = id + 1
+    db.execute("INSERT INTO players VALUES (?, ?, 0, 1500, 0, 0, 0)", (newid, vouched))
     database.commit()
 
 
@@ -41,31 +42,31 @@ def getrunning():
     return running
 
 
-def gamenewplayed(Played, ID):
-    db.execute("UPDATE games SET GamesPlayed = ? WHERE ID = ?", (Played, ID))
+def gamenewplayed(played, id):
+    db.execute("UPDATE games SET GamesPlayed = ? WHERE ID = ?", (played, id))
     database.commit()
 
 
-def closegame(ID):
-    db.execute("UPDATE games SET Running = 'No' WHERE ID = ?", (ID,))
+def closegame(id):
+    db.execute("UPDATE games SET Running = 'No' WHERE ID = ?", (id,))
     database.commit()
 
 
-def getgameid(ID):
-    db.execute("SELECT * FROM games WHERE ID = ?", (ID,))
-    ID = db.fetchone()
-    return ID
+def getgameid(id):
+    db.execute("SELECT * FROM games WHERE ID = ?", (id,))
+    id = db.fetchone()
+    return id
 
 
 def getgamenewid():
     db.execute("SELECT MAX(ID) AS max_id FROM games")
     game = db.fetchone()
-    NewID = int(game[0]) + 1
-    return NewID
+    newid = int(game[0]) + 1
+    return newid
 
 
-def creategame(Pod):
-    db.execute("INSERT INTO games VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)", Pod)
+def creategame(pod):
+    db.execute("INSERT INTO games VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)", pod)
     database.commit()
 
 

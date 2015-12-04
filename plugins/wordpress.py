@@ -1,9 +1,13 @@
 #!/usr/bin/env python
 
+import csv
+import os
+import sqlite3
+import time
+
 import pandas.io.sql as sql
 from wordpress_xmlrpc import Client, WordPressPage
 from wordpress_xmlrpc.methods import posts
-import csv, os, sqlite3, time
 
 script_dir = os.path.dirname(__file__)
 rel_path = "database/main.db"
@@ -26,9 +30,9 @@ def updateleader():
             table += "%s\n" % (str(row))
     # get rid of unwanted characters
     table = table.translate(None, '\'[]')
-    timestamp = time.strftime("%d.%m.%Y at %H:%M:%SCET", time.localtime(time.time()))
+    timestamp = time.strftime("%d.%m.%Y at %H:%M:%S CET", time.localtime(time.time()))
     # define content of new page, syntax for wordpress title, our string in the middle and Timestamp at the end
-    content = "[table]" + str(table) + "[/table] \n Last update: %s" % (timestamp)
+    content = "[table]" + str(table) + "[/table] \n Last update: %s" % timestamp
     # Login to wordpress
     wp = Client("http://xleague.djetelina.cz/xmlrpc.php", "%s" % (wplogin[0]), "%s" % (wplogin[1]))
     # Define what are we editing

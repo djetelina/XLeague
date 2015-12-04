@@ -7,33 +7,34 @@ Kmid = 15
 Khigh = 20
 
 
+# noinspection PyUnboundLocalVariable
 def decidek(player):
     played = player['Played']
     if played <= 20:
-        K = Khigh
+        k = Khigh
     elif played < 40:
-        K = Kmid
+        k = Kmid
     elif played >= 40:
-        K = Klow
-    return K
+        k = Klow
+    return k
 
 
 def decidee(player1, player2):
-    E = (1.0 / (1.0 + pow(10, (player2['ELO'] - player1['ELO']) / 400)))
-    return E
+    e = (1.0 / (1.0 + pow(10, (player2['ELO'] - player1['ELO']) / 400)))
+    return e
 
 
-def newelo(Whose, Winner, Loser):
-    NewELO = []
-    WinnerK = decidek(Winner)
-    LoserK = decidek(Loser)
-    WinnerE = decidee(Winner, Loser)
-    LoserE = 1 - WinnerE
-    if Whose == "W":
-        NewELO = int((Winner['ELO'] + WinnerK * (1 - WinnerE)))
-    elif Whose == "L":
-        NewELO = int((Loser['ELO'] + LoserK * (0 - LoserE)))
-    return NewELO
+def newelo(whose, winner, loser):
+    newelo = []
+    winnerk = decidek(winner)
+    loserk = decidek(loser)
+    winnere = decidee(winner, loser)
+    losere = 1 - winnere
+    if whose == "W":
+        newelo = int((winner['ELO'] + winnerk * (1 - winnere)))
+    elif whose == "L":
+        newelo = int((loser['ELO'] + loserk * (0 - losere)))
+    return newelo
 
 
 def main():
