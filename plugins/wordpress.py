@@ -17,8 +17,9 @@ login = (os.path.join(os.path.dirname(__file__), "wordpress/wp.txt"))
 
 def updateleader():
     read = sql.read_sql("SELECT Name, ELO, Played, W, L FROM players WHERE Played > 0 ORDER BY ELO DESC", database)
+    read.index += 1
     csvpath = (os.path.join(os.path.dirname(__file__), "wordpress/temp.csv"))
-    read.to_csv(csvpath)
+    read.to_csv(csvpath, header = False)
     # get wordpress login information
     with open(login) as f:
         wplogin = f.read().split(',')
@@ -32,14 +33,14 @@ def updateleader():
     table = table.translate(None, '\'[]')
     timestamp = time.strftime("%d.%m.%Y at %H:%M:%S CET", time.localtime(time.time()))
     # define content of new page, syntax for wordpress title, our string in the middle and Timestamp at the end
-    content = "[table]" + str(table) + "[/table] \n Last update: %s" % timestamp
+    content = "[table] Rank, Player, Rating, Matches, Wins, Losses\n" + str(table) + "[/table] \n Last update: %s" % timestamp
     # Login to wordpress
     wp = Client("http://xleague.djetelina.cz/xmlrpc.php", "%s" % (wplogin[0]), "%s" % (wplogin[1]))
     # Define what are we editing
     page = WordPressPage()
     page.id = 139
     page.content = content
-    page.title = "LeaderBoard"
+    page.title = "Leaderboard"
     # Edit desired page
     wp.call(posts.EditPost(page.id, page))
 

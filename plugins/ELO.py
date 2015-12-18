@@ -10,12 +10,13 @@ Khigh = 20
 # noinspection PyUnboundLocalVariable
 def decidek(player):
     played = player['Played']
-    if played <= 20:
-        k = Khigh
-    elif played < 40:
-        k = Kmid
-    elif played >= 40:
-        k = Klow
+#    if played <= 20:
+#        k = Khigh
+#    elif played < 40:
+#        k = Kmid
+#    elif played >= 40:
+#        k = Klow
+    k = 32
     return k
 
 
