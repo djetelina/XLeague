@@ -1,7 +1,10 @@
 #!/usr/bin/env python
 
 import os
+import json
 import sqlite3
+
+import pandas.io.sql as sql
 
 script_dir = os.path.dirname(__file__)
 rel_path = "database/main.db"
@@ -70,5 +73,74 @@ def creategame(pod):
     database.commit()
 
 
+def jsonplayers():
+    read = sql.read_sql("SELECT *, (SELECT COUNT(*) from players b where b.ELO >= a.ELO and Played > 0) as Rank FROM players a WHERE Played > 0 ORDER BY ELO DESC", database)
+    ## read.index += 1
+    read = read.to_dict(orient='records')
+    ## read = {str(k):v for k, v in read.items()}
+    results = {"players":read}
+    ## rows = db.execute("SELECT * FROM players").fetchall()
+    ## results = {"players":[dict (ix) for ix in rows]}
+    return json.dumps( results ) 
+
+
+def jsongames():
+    rows = db.execute("SELECT * FROM games").fetchall()
+    results = {"games":[dict (ix) for ix in rows]}
+    return json.dumps( results ) 
+
+def jsonplayer(player):
+    db.execute("SELECT *, (SELECT COUNT(*) from players b where b.ELO >= a.ELO and Played > 0) as Rank FROM players a WHERE Name = ? COLLATE NOCASE", (player,))
+    playerstats = {"player":[dict(db.fetchone())]}
+    return playerstats
+
+def jsongame(id):
+    db.execute("SELECT * FROM games WHERE ID = ? COLLATE NOCASE", (int(id),))
+    gamestats = {"game":[dict(db.fetchone())]}
+    return gamestats
+
+def jsonrequests():
+    rows = db.execute("SELECT * FROM vouchrequests").fetchall()
+    result = {"vouchrequests":[dict (ix) for ix in rows]}
+    return json.dumps ( result )
+
+def vouchrequest(name, about):
+    request = db.execute("SELECT 1 FROM vouchrequests WHERE name=?", (name, ))
+    didrequest = request.fetchone()
+    vouched = db.execute("SELECT 1 FROM players WHERE name=?", (name, ))
+    isvouched = request.fetchone()
+    if didrequest is not None:
+        done = "Tried to send vouch request, but you already requested vouch."
+    elif isvouched is not None:
+        done = "Tried to send vouchrequest, but you are already vouched."
+    else:
+        db.execute("INSERT INTO vouchrequests VALUES (?, ?)", (name, about))
+        database.commit()
+        done = "Congratulations %s! Vouch request sent, we will process it as soon as possible!" % name
+    return done
+
+def confirmvouch(name):
+    db.execute("SELECT 1 from vouchrequests WHERE name=?", (name, ))
+    player = db.fetchone()
+    if player is not None:
+        vouchplayer(name)
+        db.execute("DELETE FROM vouchrequests WHERE name=?", (name, ))
+        result = "%s vouched." % name
+        database.commit()
+    else:
+        result = "Couldn't vouch %s." % name
+    return result
+
+def denyvouch(name):
+    db.execute("SELECT 1 from vouchrequests WHERE name=?", (name, ))
+    player = db.fetchone()
+    if player is not None:
+        db.execute("DELETE FROM vouchrequests WHERE name=?", (name, ))
+        result = "Vouch request by %s denied." % name
+        database.commit()
+    else:
+        result = "Couldn't find %s in vouch requests." % name
+    return result
+
 if __name__ == '__main__':
-    getrunning()
+    print jsonplayer("iScrE4m")
