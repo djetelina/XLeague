@@ -75,10 +75,7 @@ class requestvouch(cyclone.web.RequestHandler):
 
     def msg(self, channel, msg):
         bot = self.botfactory.getProtocolByName("XLeagueBot") # fuj
-        try:
-            sendmsg(bot, channel, msg)
-        except Exception as e:
-            print traceback.format_exc()
+        sendmsg(bot, channel, msg)
 
     def post(self):
         self.add_header("Access-Control-Allow-Origin", "*")

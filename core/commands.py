@@ -60,19 +60,18 @@ def join(auth, total_queued, queues, args):
     queue_key = args[0]
     games = db.getrunning()
     if auth is not None:
-        if queue_key in queues:
-            if auth['Name'] not in total_queued and auth['Name'] not in games:
-                queue_key.add(auth['Name'])
-                if queue_key.check() is True:
-                    # Figure out how to deal with starting a pod
-                    reply = ""
-                else:
-                    tostart = str(queue_key.NeededToStart - queue_key.QueuedPlayers)
-                    reply = "%s joined a queue. %s players to start %s. Type .join to join" % (auth['Name'], tostart, queue_key.GameType)
+        if auth['Name'] not in total_queued and auth['Name'] not in games:
+            queue_key.add(auth['Name'])
+            if queue_key.check() is True:
+                # TODO Figure out how to deal with starting a pod
+                reply = ""
             else:
-                reply = "You are already in a queue or in a game"
+                to_start = str(queue_key.NeededToStart - queue_key.QueuedPlayers)
+                reply = "%s joined a queue. %s players to start %s. Type .join to join" % (auth['Name'], to_start, queue_key.GameType)
         else:
-            reply = "Enter a valid queue name (Draft, Sealed2, Sealed4, Sealed, Standard)"
+            reply = "You are already in a queue or in a game"
+    elif queue_key in queues:
+        reply = "Enter a valid queue name (Draft, Sealed2, Sealed4, Sealed, Standard)"
     else:
         reply = "You can't join a game, if you aren't vouched"
 
