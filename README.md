@@ -1,4 +1,6 @@
 # XLeague
+
+[![Join the chat at https://gitter.im/iScrE4m/XLeague](https://badges.gitter.im/iScrE4m/XLeague.svg)](https://gitter.im/iScrE4m/XLeague?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)
 Inhouse League for XMage Drafting
 
 This code is currently under heavy reconstruction.
