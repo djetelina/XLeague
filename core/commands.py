@@ -15,7 +15,6 @@ def handle(auth, queues, msg):
 
     :param auth:            AUTH of a player sending command
     :param queues:          Dictionary with queue instances
-    :param channel:         Channel, where command was received
     :param msg:             Message received
     :return:                String with reply
     """

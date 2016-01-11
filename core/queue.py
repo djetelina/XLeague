@@ -13,7 +13,7 @@ def start_queues():
 
     :return:            Dictionary with queue instances
     """
-    return {"Draft": Draft, "Sealed": Sealed, "Sealed2": Sealed2,"Sealed4": Sealed4,"Standard": Standard}
+    return {"Draft": Draft, "Sealed": Sealed, "Sealed2": Sealed2, "Sealed4": Sealed4, "Standard": Standard}
 
 
 class Game(object):
@@ -37,21 +37,26 @@ class Game(object):
         else:
             return False
 
+
 class Draft(Game):
     def __init__(self, game_type="Draft", leaderboard="limited", needed_to_start=8):
         super(Draft, self).__init__(game_type, leaderboard, needed_to_start)
+
 
 class Sealed2(Game):
     def __init__(self, game_type="Sealed duel", leaderboard="limited", needed_to_start=2):
         super(Sealed2, self).__init__(game_type, leaderboard, needed_to_start)
 
+
 class Sealed4(Game):
     def __init__(self, game_type="Sealed 4 players", leaderboard="limited", needed_to_start=4):
         super(Sealed4, self).__init__(game_type, leaderboard, needed_to_start)
 
+
 class Sealed(Game):
     def __init__(self, game_type="Sealed Classic", leaderboard="limited", needed_to_start=8):
         super(Sealed, self).__init__(game_type, leaderboard, needed_to_start)
+
 
 class Standard(Game):
     def __init__(self, game_type="Standard", leaderboard="constructed", needed_to_start=2):

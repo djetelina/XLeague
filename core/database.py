@@ -4,6 +4,8 @@
 Copyright (c) 2016 iScrE4m@gmail.com
 
 To use the code, you must contact the author directly and ask permission.
+
+Database will be restructured
 """
 
 import json
@@ -70,11 +72,11 @@ def confirmvouch(name):
     :param name:        Player name
     :return:            String with reply
     """
-    db.execute("SELECT 1 from vouchrequests WHERE name=? COLLATE NOCASE", (name, ))
+    db.execute("SELECT 1 FROM vouchrequests WHERE name=? COLLATE NOCASE", (name,))
     player = db.fetchone()
     if player is not None:
         vouchplayer(name)
-        db.execute("DELETE FROM vouchrequests WHERE name=? COLLATE NOCASE", (name, ))
+        db.execute("DELETE FROM vouchrequests WHERE name=? COLLATE NOCASE", (name,))
         reply = "%s vouched." % name
         database.commit()
     else:
@@ -89,10 +91,10 @@ def denyvouch(name):
     :param name:        Player name
     :return:            String with reply
     """
-    db.execute("SELECT 1 from vouchrequests WHERE name=? COLLATE NOCASE", (name, ))
+    db.execute("SELECT 1 FROM vouchrequests WHERE name=? COLLATE NOCASE", (name,))
     player = db.fetchone()
     if player is not None:
-        db.execute("DELETE FROM vouchrequests WHERE name=? COLLATE NOCASE", (name, ))
+        db.execute("DELETE FROM vouchrequests WHERE name=? COLLATE NOCASE", (name,))
         reply = "Vouch request by %s denied." % name
         database.commit()
     else:
@@ -195,9 +197,11 @@ def jsonplayers():
 
     :return:            Dictionary with all players and all their information
     """
-    read = sql.read_sql("SELECT *, (SELECT COUNT(*) FROM players b WHERE b.ELO >= a.ELO AND Played > 0) AS Rank FROM players a WHERE Played > 0 ORDER BY ELO DESC", database)
+    read = sql.read_sql(
+            "SELECT *, (SELECT COUNT(*) FROM players b WHERE b.ELO >= a.ELO AND Played > 0) AS Rank FROM players a WHERE Played > 0 ORDER BY ELO DESC",
+            database)
     read = read.to_dict(orient='records')
-    results = {"players":read}
+    results = {"players": read}
     return results
 
 
@@ -208,7 +212,7 @@ def jsongames():
     :return:            Dictionary with all games and all their information
     """
     rows = db.execute("SELECT * FROM games").fetchall()
-    results = {"games": [dict (ix) for ix in rows]}
+    results = {"games": [dict(ix) for ix in rows]}
     return json.dumps(results)
 
 
@@ -219,8 +223,10 @@ def jsonplayer(player):
     :param player:      Name of a player to check
     :return:            Dictionary with player and it's information
     """
-    db.execute("SELECT *, (SELECT COUNT(*) FROM players b WHERE b.ELO >= a.ELO AND Played > 0) AS Rank FROM players a WHERE Name = ? COLLATE NOCASE", (player,))
-    playerstats = {"player":[dict(db.fetchone())]}
+    db.execute(
+            "SELECT *, (SELECT COUNT(*) FROM players b WHERE b.ELO >= a.ELO AND Played > 0) AS Rank FROM players a WHERE Name = ? COLLATE NOCASE",
+            (player,))
+    playerstats = {"player": [dict(db.fetchone())]}
     return playerstats
 
 
@@ -232,7 +238,7 @@ def jsongame(id):
     :return:            Dictionary with game and it's information
     """
     db.execute("SELECT * FROM games WHERE ID = ? COLLATE NOCASE", (int(id),))
-    gamestats = {"game":[dict(db.fetchone())]}
+    gamestats = {"game": [dict(db.fetchone())]}
     return gamestats
 
 
@@ -243,7 +249,7 @@ def jsonrequests():
     :return:            Dictionary with all vouch requests
     """
     rows = db.execute("SELECT * FROM vouchrequests").fetchall()
-    result = {"vouchrequests":[dict (ix) for ix in rows]}
+    result = {"vouchrequests": [dict(ix) for ix in rows]}
     return result
 
 
@@ -255,9 +261,9 @@ def vouchrequest(name, about):
     :param about:       About player
     :return:            String with reply
     """
-    request = db.execute("SELECT 1 FROM vouchrequests WHERE name=? COLLATE NOCASE", (name, ))
+    request = db.execute("SELECT 1 FROM vouchrequests WHERE name=? COLLATE NOCASE", (name,))
     didrequest = request.fetchone()
-    vouched = db.execute("SELECT 1 FROM players WHERE name=? COLLATE NOCASE", (name, ))
+    vouched = db.execute("SELECT 1 FROM players WHERE name=? COLLATE NOCASE", (name,))
     isvouched = vouched.fetchone()
     if didrequest is not None:
         reply = "Tried to send vouch request, but you already requested vouch."
@@ -268,7 +274,3 @@ def vouchrequest(name, about):
         database.commit()
         reply = "Congratulations %s! Vouch request sent, we will process it as soon as possible!" % name
     return reply
-
-
-if __name__ == '__main__':
-    print jsonplayer("iScrE4m")

@@ -21,7 +21,8 @@ def fetch(name):
     Get information about card
 
     :param name:        Card to look up
-    :return:            String with card information (2 lines)
+    :return:            Generator for string with card information (2 lines)
+                            use yield to retrieve the information
     """
     apiurl = url_base + re.sub("[\'\",]", "", re.sub(" ", "-", name.lower()))
     data = yield getPage(apiurl)
