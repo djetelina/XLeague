@@ -9,7 +9,7 @@ To use the code, you must contact the author directly and ask permission.
 from . import database as db
 
 
-def handle(auth, queues, channel, msg):
+def handle(auth, queues, msg):
     """
     Command handler
 
@@ -17,8 +17,7 @@ def handle(auth, queues, channel, msg):
     :param queues:          List of queues objects
     :param channel:         Channel, where command was received
     :param msg:             Message received
-    :return:                Command to execute
-                                To prevent sending protocol instance and to not act if invalid command was entered
+    :return:                String with reply
     """
 
     command = msg[1:].split()
@@ -27,22 +26,25 @@ def handle(auth, queues, channel, msg):
     total_queued = []
     for instance in queues:
         total_queued.append(instance.QueuedPlayers)
+    player = db.getplayer(auth)
+
     """
-    command                 List from message stripped of command character
+    command                 List from message stripped of the command character
     name                    Name of the command entered by user
     args                    Arguments of the command
     total_queued            List of all the players currently queued in any queue
+    player                  Dictionary with player information
     """
 
-    if name == "join":
-        reply = join(auth, total_queued, queues, args)
-        return lambda: self.msg(reply, channel)
-    elif name == "":
-        return
+    if player['Vouched'] == 1:
+        if name == "join":
+            return join(auth, total_queued, queues, args)
+        elif name == "leave":
+            return leave(auth, queues)
 
     # Command not recognized
     else:
-        return lambda: None
+        return "The command doesn't exist or you don't have enough permissions"
 
 
 def join(auth, total_queued, queues, args):
@@ -60,19 +62,41 @@ def join(auth, total_queued, queues, args):
     queue_key = args[0]
     games = db.getrunning()
     if auth is not None:
-        if auth['Name'] not in total_queued and auth['Name'] not in games:
-            queue_key.add(auth['Name'])
+        if auth not in total_queued and auth not in games:
+            queue_key.add(auth)
             if queue_key.check() is True:
                 # TODO Figure out how to deal with starting a pod
                 reply = ""
             else:
                 to_start = str(queue_key.NeededToStart - queue_key.QueuedPlayers)
-                reply = "%s joined a queue. %s players to start %s. Type .join to join" % (auth['Name'], to_start, queue_key.GameType)
+                reply = "%s joined a queue. %s players to start %s. Type .join to join" % (
+                auth, to_start, queue_key.GameType)
         else:
             reply = "You are already in a queue or in a game"
-    elif queue_key in queues:
+    elif queue_key not in queues:
         reply = "Enter a valid queue name (Draft, Sealed2, Sealed4, Sealed, Standard)"
     else:
         reply = "You can't join a game, if you aren't vouched"
 
+    return reply
+
+
+def leave(auth, queues):
+    """
+    Leaves the queue player is currently in
+
+    IRC usage: '.leave'
+
+    :param auth:        Auth of the player
+    :param queues:      List with instances of queues
+    :return:            String with reply
+    """
+    for queue_key in queues:
+        if auth in queue_key.QueuedPlayers:
+            correct_key = queue_key
+            correct_key.remove(auth)
+            reply = "%s left the %s queue" % (auth, correct_key)
+            break
+    else:
+        reply = "You are not in any queue"
     return reply

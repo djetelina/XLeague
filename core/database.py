@@ -26,7 +26,7 @@ def getplayer(player):
     """
     Call to retrieve player information
 
-    :param player:      Name of a player
+    :param player:      Name of a player (their GameSurge auth)
     :return:            Dictionary with player information
     """
     db.execute("SELECT * FROM players WHERE Name = ? COLLATE NOCASE", (player,))
