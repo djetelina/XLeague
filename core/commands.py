@@ -14,7 +14,7 @@ def handle(auth, queues, msg):
     Command handler
 
     :param auth:            AUTH of a player sending command
-    :param queues:          List of queues objects
+    :param queues:          Dictionary with queue instances
     :param channel:         Channel, where command was received
     :param msg:             Message received
     :return:                String with reply
@@ -24,7 +24,7 @@ def handle(auth, queues, msg):
     name = command[0]
     args = command[1:]
     total_queued = []
-    for instance in queues:
+    for instance in queues.itervalues():
         total_queued.append(instance.QueuedPlayers)
     player = db.getplayer(auth)
 
@@ -55,25 +55,25 @@ def join(auth, total_queued, queues, args):
 
     :param auth:            Auth of the player
     :param total_queued:    List of all the players currently queued in any queue
-    :param queues:          List with instances of queues
-    :param args:            Name of queue to join - also queue_key
+    :param queues:          Dictionary with queue instances
+    :param args:            Name of queue to join - also queue_to_join
     :return:                String with reply
     """
-    queue_key = args[0]
+    queue_to_join = queues[args[0]]
     games = db.getrunning()
     if auth is not None:
         if auth not in total_queued and auth not in games:
-            queue_key.add(auth)
-            if queue_key.check() is True:
+            queue_to_join.add(auth)
+            if queue_to_join.check() is True:
                 # TODO Figure out how to deal with starting a pod
                 reply = ""
             else:
-                to_start = str(queue_key.NeededToStart - queue_key.QueuedPlayers)
-                reply = "%s joined a queue. %s players to start %s. Type .join to join" % (
-                auth, to_start, queue_key.GameType)
+                to_start = str(queue_to_join.NeededToStart - queue_to_join.QueuedPlayers)
+                reply = "%s joined the %s queue. %s players to start - type .join %s to join" % (
+                    auth, args[0], to_start, args[0])
         else:
             reply = "You are already in a queue or in a game"
-    elif queue_key not in queues:
+    elif queue_to_join not in queues.values():
         reply = "Enter a valid queue name (Draft, Sealed2, Sealed4, Sealed, Standard)"
     else:
         reply = "You can't join a game, if you aren't vouched"
@@ -88,14 +88,13 @@ def leave(auth, queues):
     IRC usage: '.leave'
 
     :param auth:        Auth of the player
-    :param queues:      List with instances of queues
+    :param queues:      Dictionary with queue instances
     :return:            String with reply
     """
-    for queue_key in queues:
-        if auth in queue_key.QueuedPlayers:
-            correct_key = queue_key
-            correct_key.remove(auth)
-            reply = "%s left the %s queue" % (auth, correct_key)
+    for key, instance in queues.iteritems():
+        if auth in instance.QueuedPlayers:
+            instance.remove(auth)
+            reply = "%s left the %s queue" % (auth, key)
             break
     else:
         reply = "You are not in any queue"

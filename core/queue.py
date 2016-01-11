@@ -11,9 +11,9 @@ def start_queues():
     """
     Creates instances of all queues
 
-    :return:            list with instances
+    :return:            Dictionary with queue instances
     """
-    return [Draft, Sealed, Sealed2, Sealed4, Standard]
+    return {"Draft": Draft, "Sealed": Sealed, "Sealed2": Sealed2,"Sealed4": Sealed4,"Standard": Standard}
 
 
 class Draft:
