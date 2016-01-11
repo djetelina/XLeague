@@ -26,7 +26,7 @@ from twisted.internet.defer import Deferred
 from twisted.web.client import getPage
 from twisted.words.protocols import irc
 
-import core.ELO as ELO
+import core.rating as ELO
 import core.database as db
 import settings as s
 
@@ -502,6 +502,7 @@ def removefromqueue(player):
     QueuedPlayers.remove(player)
 
 
+# TODO port to separate file
 def startpod(self):
     global GameOpen
     global GameType

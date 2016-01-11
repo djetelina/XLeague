@@ -6,7 +6,7 @@
 
 [![Issue Count](https://codeclimate.com/repos/5692b1e116dbe30b5d001629/badges/bf521e51d0eb2c1e3aef/issue_count.svg)](https://codeclimate.com/repos/5692b1e116dbe30b5d001629/feed)
 
-Inhouse League for XMage Drafting
+Inhouse League for XMage
 
 This code is currently under heavy reconstruction.
 If you want to help, use #XLeague channel on GameSurge
