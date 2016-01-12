@@ -8,6 +8,7 @@ FIRST DRAFT of games handling
 """
 
 import string
+import random
 from . import database as db
 
 
