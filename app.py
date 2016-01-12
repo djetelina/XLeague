@@ -1,11 +1,11 @@
 #!/usr/bin/env python
-
 """
 Copyright (c) 2016 iScrE4m@gmail.com
 
 To use the code, you must contact the author directly and ask permission.
 
-This is being slowly split into smaller files, the main logic will be edited after everything is done
+This is being slowly split into smaller files, the main logic will be edited
+after everything is done
 """
 
 from __future__ import division
@@ -52,11 +52,9 @@ class Application(cyclone.web.Application):
             (r"/game/(.+)", gamejson),
         ]
 
-        settings = dict(
-            xheaders=False,
-            static_path="./static",
-            template_path="./templates",
-        )
+        settings = dict(xheaders=False,
+                        static_path="./static",
+                        template_path="./templates", )
 
         self.botfactory = botfactory
 
@@ -74,7 +72,7 @@ class requestvouch(cyclone.web.RequestHandler):
         self.botfactory = application.botfactory
 
     def msg(self, channel, msg):
-        bot = self.botfactory.getProtocolByName("XLeagueBot") # fuj
+        bot = self.botfactory.getProtocolByName("XLeagueBot")  # TODO fuj
         sendmsg(bot, channel, msg)
 
     def post(self):
@@ -84,8 +82,8 @@ class requestvouch(cyclone.web.RequestHandler):
         done = db.vouchrequest(name, about)
         self.write(done)
         self.finish()
-        msg = "New vouch request by %s" % name
-        self.msg(s.channel, msg) # fuj
+        msg = "New vouch request by {}".format(name)
+        self.msg(s.channel, msg)  # TODO fuj
 
 
 class requestjson(cyclone.web.RequestHandler):
@@ -105,7 +103,6 @@ class playersjson(cyclone.web.RequestHandler):
 
 
 class gamesjson(cyclone.web.RequestHandler):
-
     def get(self):
         self.add_header("Content-type", "application/json")
         self.add_header("Access-Control-Allow-Origin", "*")
@@ -114,7 +111,6 @@ class gamesjson(cyclone.web.RequestHandler):
 
 
 class variablesjson(cyclone.web.RequestHandler):
-
     def get(self):
         self.add_header("Content-type", "application/json")
         self.add_header("Access-Control-Allow-Origin", "*")
@@ -123,28 +119,35 @@ class variablesjson(cyclone.web.RequestHandler):
         global GameType
         global GameOpen
         global runninggames
-        result = {"variables":[{"InQueue": len(QueuedPlayers), "QueuedPlayers": ", ".join(QueuedPlayers), "NeededToStart": NeededToStart, "GameType": GameType, "GameOpen": GameOpen, "RunningGames": ", ".join(runninggames)}]}
+        result = {"variables": [{"InQueue": len(QueuedPlayers),
+                                 "QueuedPlayers": ", ".join(QueuedPlayers),
+                                 "NeededToStart": NeededToStart,
+                                 "GameType": GameType,
+                                 "GameOpen": GameOpen,
+                                 "RunningGames": ", ".join(runninggames)}]}
         towrite = json.dumps(result)
         self.write(towrite)
 
-class playerjson(cyclone.web.RequestHandler):
 
+class playerjson(cyclone.web.RequestHandler):
     def get(self, player):
         self.add_header("Content-type", "application/json")
         self.add_header("Access-Control-Allow-Origin", "*")
         result = db.jsonplayer(player)
         self.write(result)
 
-class gamejson(cyclone.web.RequestHandler):
 
+class gamejson(cyclone.web.RequestHandler):
     def get(self, number):
         self.add_header("Content-type", "application/json")
         self.add_header("Access-Control-Allow-Origin", "*")
         result = db.jsongame(number)
         self.write(result)
 
+
 class NoAccount(Exception):
     "No account found."
+
 
 class XLeagueBot(irc.IRCClient):
     nickname = s.nickname
@@ -164,17 +167,16 @@ class XLeagueBot(irc.IRCClient):
         self.join(self.factory.channel)
 
     def joined(self, channel):
-        status = "Joined %s" % channel
+        status = "Joined {}".format(channel)
         log(status)
         auth(self)
 
     def noticed(self, user, channel, msg):
-        status = "Notice from %s: %s" % (user, msg)
+        status = "Notice from {}: {}".format(user, msg)
         log(status)
 
-    def msg(self, user, message, length = None):
+    def msg(self, user, message, length=None):
         irc.IRCClient.msg(self, user, message, length)
-
 
     @defer.inlineCallbacks
     def privmsg(self, user, channel, msg):
@@ -186,7 +188,7 @@ class XLeagueBot(irc.IRCClient):
         global runninggames
 
         user = user.split('!', 1)[0]
-        status = "%s in %s: %s" % (user, channel, msg)
+        status = "{} in {}: {}".format(user, channel, msg)
         log(status)
 
         if channel == self.nickname:
@@ -197,7 +199,7 @@ class XLeagueBot(irc.IRCClient):
                 msg = " ".join(command[1:])
                 sendmsg(self, channel, msg)
             elif user not in ignore:
-                msg = "Please use %s for commands." % s.channel
+                msg = "Please use {} for commands.".format(s.channel)
                 channel = user
                 sendmsg(self, channel, msg)
 
@@ -206,12 +208,15 @@ class XLeagueBot(irc.IRCClient):
             player = db.getplayer(authed)
             games = db.getrunning()
             if player is not None:
-                if player['Name'] not in QueuedPlayers and player['Name'] not in games and GameOpen == 1:
+                if player['Name'] not in QueuedPlayers and player[
+                        'Name'] not in games and GameOpen == 1:
                     addtoqueue(authed)
                     if len(QueuedPlayers) == NeededToStart:
                         msg = startpod(self)
                     else:
-                        msg = str(NeededToStart - len(QueuedPlayers)) + " to start %s. Type .join to join" % GameType
+                        players_left = NeededToStart - len(QueuedPlayers)
+                        msg = "{} to start {}. Type .join to join".format(
+                            players_left, GameType)
 
                 elif GameOpen == 0:
                     msg = "No games open. Ask a Judge to open a game for you."
@@ -225,15 +230,16 @@ class XLeagueBot(irc.IRCClient):
             authed = yield self.deferredwhois(user)
             if authed in QueuedPlayers:
                 removefromqueue(authed)
-                msg = "%s left the queue" % authed
+                msg = "{} left the queue".format(authed)
             else:
                 msg = "You can't leave if you didn't join, silly"
             sendmsg(self, channel, msg)
 
         if msg.startswith(".players"):
             if GameOpen == 1:
-                msg = "%i out of %i in queue for %s: " % (len(QueuedPlayers), NeededToStart, GameType) + ", ".join(
-                    map(str, QueuedPlayers))
+                players = ", ".join(map(str, QueuedPlayers))
+                msg = "{} out of {} in queue for {}: {}".format(
+                    len(QueuedPlayers), NeededToStart, GameType, players)
             else:
                 msg = "No games open. Ask a Judge to open a game for you."
             sendmsg(self, channel, msg)
@@ -247,10 +253,13 @@ class XLeagueBot(irc.IRCClient):
                     wlr = str(int(stats['W'] / stats['Played'] * 100)) + "%"
                 except ZeroDivisionError:
                     wlr = "N/A"
-                msg = "Stats for %s - Rating: %i - Games Played: %i - Wins: %i - Losses: %i - WLR: %s" % (
-                    stats['Name'], stats['ELO'], stats['Played'], stats['W'], stats['L'], wlr)
+                msg = "\n".join([
+                    "Stats for {} - Rating: {} - Games Played: {}",
+                    " - Wins: {} - Losses: {} - WLR: {}"
+                ]).format(stats['Name'], stats['ELO'], stats['Played'],
+                          stats['W'], stats['L'], wlr)
             except TypeError:
-                msg = "No player named '%s' found" % player
+                msg = "No player named '{}' found".format(player)
             sendmsg(self, channel, msg)
 
         if msg.startswith(".card"):
@@ -262,9 +271,9 @@ class XLeagueBot(irc.IRCClient):
             if not running:
                 msg = "No games are in progress."
             else:
-                msg = "Games in progress "
-                for row in running:
-                    msg += "| #%s " % str(row[0])
+                games = " | ".join(["#{}".format(str(row[0])) for row in
+                                    running])
+                msg = "Games in progress | {}".format(games)
             sendmsg(self, channel, msg)
 
         if msg.startswith(".info"):
@@ -272,35 +281,43 @@ class XLeagueBot(irc.IRCClient):
             id = int(id[1])
             game = db.getgameid(id)
             if game is not None:
-                # noinspection PyPep8
-                msg = "Game #%i - Running: %s - Type: %s - Pod size: %i - Games Played: %i - Players: %s, %s, %s, %s, %s, %s, %s, %s" % (
-                    game['ID'], game['Running'], game['GameType'], game['Pod'], game['GamesPlayed'], game['Player 1'],
-                    game['Player 2'], game['Player 3'], game['Player 4'], game['Player 5'], game['Player 6'],
-                    game['Player 7'], game['Player 8'])
+                players = ", ".join([game['Player {}'.format(ix)]
+                                     for ix in range(1, 9)])
+                msg = "\n".join([
+                    "Game #{} - Running: {} - Type: {}",
+                    " - Pod size: {} - Games Played: {} - Players: {}"
+                ]).join(game['ID'], game['Running'], game['GameType'],
+                        game['Pod'], game['GamesPlayed'], players)
                 msg = msg.replace(", None", "")
             else:
-                msg = "There is no game with ID %i" % id
+                msg = "There is no game with ID {}".format(id)
             sendmsg(self, channel, msg)
 
         if msg.startswith(".help"):
             channel = user
             authed = yield self.deferredwhois(user)
-            msg = "My commands:\n"
-            msg += ".join ~~~ Joins queue for an open game\n"
-            msg += ".leave ~~~ Leaves Queue you were in\n"
-            msg += ".players ~~~ Lists players queued for an open game\n"
-            msg += ".player <nick> ~~~ Gets stats of player\n"
-            msg += ".games ~~~ Lists IDs of running games\n"
-            msg += ".info <GameID> ~~~ Gets info about game\n"
-            msg += ".card <CardName> ~~~ Gets details of a card\n" # Since this I learned how to make """superstrings"""
+            msg = "\n".join([
+                "My commands:", ".join ~~~ Joins queue for an open game",
+                ".leave ~~~ Leaves Queue you were in",
+                ".players ~~~ Lists players queued for an open game",
+                ".player <nick> ~~~ Gets stats of player",
+                ".games ~~~ Lists IDs of running games",
+                ".info <GameID> ~~~ Gets info about game",
+                ".card <CardName> ~~~ Gets details of a card"
+            ])
             judge = db.getplayer(authed)
             if judge['Judge'] == 1:
-                msg += "===== JUDGE COMMANDS =====\n"
-                msg += ".confirmvouch <nick> ~~~ Vouches player (or .denyvouch)\n"
-                msg += ".open <GameType> <Players> ~~~ Opens a draft/sealed for number of players\n"
-                msg += ".close <GameID> ~~~ Closes game (Used for games in database, NOT for queues)\n"
-                msg += ".result <GameID> <Winner> <WinnerScore> <LoserScore> <Loser> ~~~ Reports a result for GameID.\n"
-                msg += ".updateleader ~~~ Updates leaderboard on the website"
+                msg += "\n".join([
+                    "", "===== JUDGE COMMANDS =====",
+                    ".confirmvouch <nick> ~~~ Vouches player (or .denyvouch)",
+                    ".open <GameType> <Players> ~~~ Opens a draft/sealed for" +
+                    " number of players",
+                    ".close <GameID> ~~~ Closes game (Used for games in" +
+                    " database, NOT for queues)",
+                    ".result <GameID> <Winner> <WinnerScore> <LoserScore>" +
+                    " <Loser> ~~~ Reports a result for GameID.",
+                    ".updateleader ~~~ Updates leaderboard on the website"
+                ])
             sendmsg(self, channel, msg)
 
         # Judge commands
@@ -324,7 +341,10 @@ class XLeagueBot(irc.IRCClient):
                 vouched = vouched[1]
                 msg = db.denyvouch(vouched)
             else:
-                msg = "You don't have sufficient permissions to deny a vouch requests"
+                msg = " ".join([
+                    "You don't have sufficient permissions",
+                    "to deny a vouch requests"
+                ])
             sendmsg(self, channel, msg)
 
         if msg.startswith(".open"):
@@ -336,7 +356,8 @@ class XLeagueBot(irc.IRCClient):
                 GameType = msg[1]
                 NeededToStart = int(msg[2])
                 QueuedPlayers = []
-                msg = "%s for %i players is now open. Type .join to join" % (GameType, NeededToStart)
+                msg = ("{} for {} players is now open." +
+                       " Type .join to join").format(GameType, NeededToStart)
             else:
                 msg = "You don't have sufficient permissions to open new game."
             sendmsg(self, channel, msg)
@@ -378,8 +399,9 @@ class XLeagueBot(irc.IRCClient):
                 changewinner = winnerelo - winnerdict['ELO']
                 changeloser = loserelo - loserdict['ELO']
 
-                msg = "New Ratings: %s %i [+%i] %s %i [%i]" % (
-                    winner, winnerelo, changewinner, loser, loserelo, changeloser)
+                msg = "New Ratings: {} {} [+{}] {} {} [{}]".format(
+                    winner, winnerelo, changewinner, loser, loserelo,
+                    changeloser)
 
                 db.ratingchange(winner, winnerelo, playedw, ww, lw)
                 db.ratingchange(loser, loserelo, playedl, wl, ll)
@@ -390,9 +412,12 @@ class XLeagueBot(irc.IRCClient):
                 if played == PodGames[game['Pod']]:
                     db.closegame(id)
                     runninggames.remove(str(id))
-                    msg += "\nGame #%i ended." % id
+                    msg += "\nGame #{} ended.".format(id)
             else:
-                msg = "You don't have sufficient permissions to report results. Ask a judge to report them for you."
+                msg = " ".join([
+                    "You don't have sufficient permissions to report results.",
+                    "Ask a judge to report them for you."
+                ])
             sendmsg(self, channel, msg)
 
         # Admin commands
@@ -405,7 +430,7 @@ class XLeagueBot(irc.IRCClient):
                 judge = judge[1]
                 db.makejudge(judge)
                 giveop(self, judge)
-                msg = "%s is now Judge" % judge
+                msg = "{} is now Judge".format(judge)
             else:
                 msg = "Only admin can promote players."
             sendmsg(self, channel, msg)
@@ -418,7 +443,6 @@ class XLeagueBot(irc.IRCClient):
 
     def clientmsg(self, channel, message):
         reactor.callFromThread(self.msg, channel, message)
-        status = "XLeagueBot in %s: %s" % (channel, message)
 
     def irc_330(self, prefix, params):
         self._currentActiveNick = params[2]
@@ -470,25 +494,25 @@ def errorhandler(error):
 
 
 def auth(self):
-    msg = "auth %s %s" % (s.auth_name, s.auth_pw)
+    msg = "auth {} {}".format(s.auth_name, s.auth_pw)
     self.msg('AuthServ@Services.GameSurge.net', msg)
 
 
 def giveop(self, user):
-    msg = "addop %s %s" % (s.channel, user)
+    msg = "addop {} {}".format(s.channel, user)
     self.msg('ChanServ', msg)
 
 
 def log(status):
     timestamp = time.strftime("%H:%M:%S", time.localtime(time.time()))
-    status = "[%s] " % timestamp + status
+    status = "[{}] ".format(timestamp + status)
     # Adds timestamp, prints and logs current status
     status = status.encode('utf-8', errors='replace')
     print status
 
 
 def sendmsg(protocol, channel, msg):
-    status = "Sending message to %s: %s" % (channel, msg)
+    status = "Sending message to {}: {}".format(channel, msg)
     msg = msg.encode('UTF-8', 'replace')
     protocol.msg(channel, msg)
     log(status)
@@ -509,44 +533,50 @@ def startpod(self):
     global QueuedPlayers
     global runninggames
     id = db.getgamenewid()
-    # Creating list for new database entry with new ID, is running and 0 games played, Pod, Type
+    # Creating list for new database entry
+    # with new ID, is running and 0 games played, Pod, Type
     pod = [id, "Yes", 0, NeededToStart, GameType]
     # Generating password to send to players
-    password = ''.join(random.SystemRandom().choice(string.ascii_uppercase + string.digits) for _ in range(7))
+    password = ''.join(
+        random.SystemRandom().choice(string.ascii_uppercase + string.digits)
+        for _ in range(7))
     # Send each player the password and add him to database
     for queued in QueuedPlayers:
         pod.append(queued)
-        msg = "Your %s has started. Password: '%s'" % (GameType, password)
+        msg = "Your {} has started. Password: '{}'".format(GameType, password)
         queued = queued.encode('UTF-8', 'replace')
         sendmsg(self, queued, msg)
-    # If pod has fewer than 8 people, this will make sure we give enough data to the database
+    # If pod has fewer than 8 people,
+    # this will make sure we give enough data to the database
     while len(pod) < 13:
         pod.append("None")
     db.creategame(pod)
     runninggames.append(str(id))
-    msg = "Game #%i - %s is starting" % (id, GameType)
+    msg = "Game #{} - {} is starting".format(id, GameType)
     # Close queuing
     GameOpen = 0
     GameType = 0
     QueuedPlayers = []
     return msg
 
-
 # .card deferred processing - I hate deferred. So much.
+
 
 def stripcurlybraces(s):
     return re.sub("[{}]", "", s)
 
 
 def fetchcarddatabyname(self, channel, name):
-    apiurl = "http://api.deckbrew.com/mtg/cards/" + re.sub("[\'\",]", "", re.sub(" ", "-", name.lower()))
+    apiurl = "http://api.deckbrew.com/mtg/cards/" + re.sub(
+        "[\'\",]", "", re.sub(" ", "-", name.lower()))
     card = getPage(apiurl)
     card.addCallback(cardcallback(self, channel))
     card.addErrback(errorhandler)
 
-
-# Returning a function with only one input allows us to get more variables from callback
+# Returning a function with only one input
+# allows us to get more variables from callback
 # which we need to succesfully send a msg after the fetching is done
+
 
 def cardcallback(self, channel):
     def callprocess(data):
@@ -576,8 +606,10 @@ def cardprocess(self, channel, data):
         power = " [" + c["power"] + "/" + c["toughness"] + "]"
     else:
         power = ""
-    msg = name + " [" + supertypes + types + subtypes + "] " + cost + "\n" + text + power
+    msg = "{} [{}{}{}] {}\n{}{}".format(name, supertypes, types, subtypes,
+                                        cost, text, power)
     sendmsg(self, channel, msg)
+
 
 if __name__ == "__main__":
     reload(sys)
@@ -586,7 +618,7 @@ if __name__ == "__main__":
     f = XLeagueBotFactory()
     port = int(os.getenv('OPENSHIFT_PYTHON_PORT', 8888))
     host = os.getenv('OPENSHIFT_PYTHON_IP', "0.0.0.0")
-    app =  Application(f)
+    app = Application(f)
     reactor.connectTCP(s.network, s.port, f)
     reactor.listenTCP(port, app, interface=host)
     reactor.run()

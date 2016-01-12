@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-
 """
 Copyright (c) 2016 iScrE4m@gmail.com
 
@@ -51,7 +50,8 @@ def cardprocess(data):
         power = " [" + data["power"] + "/" + data["toughness"] + "]"
     else:
         power = ""
-    reply = name + " [" + supertypes + types + subtypes + "] " + cost + "\n" + text + power
+    reply = "{} [{}{}{}] {}\n{}{}".format(name, supertypes, types, subtypes,
+                                          cost, text, power)
     return reply
 
 
