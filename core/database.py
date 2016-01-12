@@ -13,8 +13,9 @@ import sqlite3
 import pandas.io.sql as sql
 
 from .. import settings as s
+from helpers import abs_db_path
 
-database = sqlite3.connect(s.db_path, timeout=1)
+database = sqlite3.connect(abs_db_path(s.db_path), timeout=1)
 database.row_factory = sqlite3.Row
 db = database.cursor()
 """
