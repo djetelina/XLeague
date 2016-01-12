@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-
 """
 Copyright (c) 2016 iScrE4m@gmail.com
 
@@ -20,7 +19,8 @@ def decide_k(player):
     :param player:      Dictionary with player info
     :return:            K factor
 
-    More dynamic k factor code (currently testing what feels the most fair to our users)
+    More dynamic k factor code
+    (currently testing what feels the most fair to our users)
 
     played = player['Played']
     if played <= 20:
@@ -50,7 +50,8 @@ def newelo(whose, winner, loser):
     """
     Calculates new rating for a player, must be called twice for each player
 
-    :param whose:       'W' or 'L' to know if we are calculating rating for winner or loser
+    :param whose:       'W' or 'L' to know if we are calculating
+                        rating for winner or loser
     :param winner:      Dictionary with Winner's info
     :param loser:       Dictionary with Loser's info
     :return:            Integer with final rating

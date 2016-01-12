@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-
 """
 Copyright (c) 2016 iScrE4m@gmail.com
 
@@ -18,7 +17,6 @@ from .. import settings as s
 database = sqlite3.connect(s.db_path, timeout=1)
 database.row_factory = sqlite3.Row
 db = database.cursor()
-
 """
 Dealing with players
 """
@@ -31,7 +29,15 @@ def getplayer(player):
     :param player:      Name of a player (their GameSurge auth)
     :return:            Dictionary with player information
     """
-    db.execute("SELECT * FROM players WHERE Name = ? COLLATE NOCASE", (player,))
+    get_player_query = """
+    SELECT
+      *
+    FROM players
+    WHERE Name = ?
+    COLLATE NOCASE
+    """
+
+    db.execute(get_player_query, (player, ))
     playerstats = dict(db.fetchone())
     return playerstats
 
@@ -46,8 +52,18 @@ def ratingchange(name, elo, played, w, l):
     :param w:           New number of games won
     :param l:           New number of games lost
     """
-    db.execute("UPDATE players SET ELO = ?, Played = ?, W = ?, L = ? WHERE Name = ? COLLATE NOCASE",
-               (elo, played, w, l, name))
+    update_player_query = """
+    UPDATE players
+    SET
+      ELO = ?,
+      Played = ?,
+      W = ?,
+      L = ?
+    WHERE Name = ?
+    COLLATE NOCASE
+    """
+
+    db.execute(update_player_query, (elo, played, w, l, name))
     database.commit()
 
 
@@ -57,11 +73,95 @@ def vouchplayer(vouched):
 
     :param vouched:     Name of a player to be added
     """
-    db.execute("SELECT MAX(ID) AS max_id FROM players")
+    newid = getgamenewid()
+    insert_player_query = """
+    INSERT INTO players
+    VALUES (
+      ?,
+      ?,
+      0,
+      1500,
+      0,
+      0,
+      0
+    )"""
+
+    db.execute(insert_player_query, (newid, vouched))
+    database.commit()
+
+
+def player_exists(name):
+    """
+    Returns True if a player for the name exists
+
+    :param name:       Player name
+    """
+    player_exists_query = """
+    SELECT
+      1
+    FROM players
+    WHERE name=?
+    COLLATE NOCASE
+    """
+
+    db.execute(player_exists_query, (name, ))
     player = db.fetchone()
-    id = player[0]
-    newid = id + 1
-    db.execute("INSERT INTO players VALUES (?, ?, 0, 1500, 0, 0, 0)", (newid, vouched))
+    exists = player is not None
+    return exists
+
+
+def voucher_exists(name):
+    """
+    Returns True if a voucher for the name exists
+
+    :param name:       Player name
+    """
+    voucher_exists_query = """
+    SELECT
+      1
+    FROM vouchrequests
+    WHERE name=?
+    COLLATE NOCASE
+    """
+
+    db.execute(voucher_exists_query, (name, ))
+    voucher = db.fetchone()
+    exists = voucher is not None
+    return exists
+
+
+def insert_vouch(name, about):
+    """
+    Inserts a vouch
+
+    :param name:       Player name
+    :param about:      About the player
+    """
+    insert_vouch_query = """
+    INSERT INTO vouchrequests
+    VALUES (
+      ?,
+      ?
+    )
+    """
+
+    db.execute(insert_vouch_query, (name, about))
+    database.commit()
+
+
+def delete_vouch(name):
+    """
+    Deletes a vouch
+
+    :param name:       Player name
+    """
+    delete_vouch_query = """
+    DELETE FROM vouchrequests
+    WHERE name=?
+    COLLATE NOCASE
+    """
+
+    db.execute(delete_vouch_query, (name, ))
     database.commit()
 
 
@@ -72,15 +172,12 @@ def confirmvouch(name):
     :param name:        Player name
     :return:            String with reply
     """
-    db.execute("SELECT 1 FROM vouchrequests WHERE name=? COLLATE NOCASE", (name,))
-    player = db.fetchone()
-    if player is not None:
+    if voucher_exists(name):
         vouchplayer(name)
-        db.execute("DELETE FROM vouchrequests WHERE name=? COLLATE NOCASE", (name,))
-        reply = "%s vouched." % name
-        database.commit()
+        delete_vouch(name)
+        reply = "{} vouched.".format(name)
     else:
-        reply = "Couldn't vouch %s." % name
+        reply = "Couldn't vouch {}.".format(name)
     return reply
 
 
@@ -91,24 +188,29 @@ def denyvouch(name):
     :param name:        Player name
     :return:            String with reply
     """
-    db.execute("SELECT 1 FROM vouchrequests WHERE name=? COLLATE NOCASE", (name,))
-    player = db.fetchone()
-    if player is not None:
-        db.execute("DELETE FROM vouchrequests WHERE name=? COLLATE NOCASE", (name,))
-        reply = "Vouch request by %s denied." % name
-        database.commit()
+    if voucher_exists(name):
+        delete_vouch(name)
+        reply = "Vouch request by {} denied.".format(name)
     else:
-        reply = "Couldn't find %s in vouch requests." % name
+        reply = "Couldn't find {} in vouch requests.".format(name)
     return reply
 
 
-def makejudge(judge):
+def makejudge(name):
     """
     Promotes player to a judge
 
-    :param judge:       Name of a player to be promoted
+    :param name:       Name of a player to be promoted
     """
-    db.execute("UPDATE players SET Judge = 1 WHERE Name = ? COLLATE NOCASE", (judge,))
+    make_judge_query = """
+    UPDATE players
+    SET
+      Judge = 1
+    WHERE Name = ?
+    COLLATE NOCASE
+    """
+
+    db.execute(make_judge_query, (name, ))
     database.commit()
 
 
@@ -123,7 +225,14 @@ def getrunning():
 
     :return:            List with all the games
     """
-    db.execute("SELECT * FROM games WHERE Running = 'Yes'")
+    running_games_query = """
+    SELECT
+      *
+    FROM games
+    WHERE Running = 'Yes'
+    """
+
+    db.execute(running_games_query)
     running = db.fetchall()
     return running
 
@@ -135,7 +244,14 @@ def gamenewplayed(played, id):
     :param played:      New number of games played
     :param id:          ID of a game to be edited
     """
-    db.execute("UPDATE games SET GamesPlayed = ? WHERE ID = ?", (played, id))
+    update_games_played_query = """
+    UPDATE games
+    SET
+      GamesPlayed = ?
+    WHERE ID = ?
+    """
+
+    db.execute(update_games_played_query, (played, id))
     database.commit()
 
 
@@ -145,7 +261,14 @@ def closegame(id):
 
     :param id:          ID of a game to be edited
     """
-    db.execute("UPDATE games SET Running = 'No' WHERE ID = ?", (id,))
+    close_game_query = """
+    UPDATE games
+    SET
+      Running = 'No'
+    WHERE ID = ?
+    """
+
+    db.execute(close_game_query, (id, ))
     database.commit()
 
 
@@ -156,7 +279,14 @@ def getgameid(id):
     :param id:          ID of a game to be retrieved
     :return:            List with game info
     """
-    db.execute("SELECT * FROM games WHERE ID = ?", (id,))
+    get_game_query = """
+    SELECT
+      *
+    FROM games
+    WHERE ID = ?
+    """
+
+    db.execute(get_game_query, (id, ))
     id = db.fetchone()
     return id
 
@@ -167,7 +297,13 @@ def getgamenewid():
 
     :return:            Integer with ID
     """
-    db.execute("SELECT MAX(ID) AS max_id FROM games")
+    max_game_id_query = """
+    SELECT
+      MAX(ID) AS max_id
+    FROM games
+    """
+
+    db.execute(max_game_id_query)
     game = db.fetchone()
     newid = int(game[0]) + 1
     return newid
@@ -177,9 +313,28 @@ def creategame(pod):
     """
     Creates new game
 
-    :param pod:         List with: ID, "Yes", Games played, Pod size, GameType, Players 1-8)
+    :param pod:         List with: ID, "Yes", Games played,
+                                   Pod size, GameType, Players 1-8
     """
-    db.execute("INSERT INTO games VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)", pod)
+    create_game_query = """
+    INSERT INTO games
+    VALUES (
+      ?,
+      ?,
+      ?,
+      ?,
+      ?,
+      ?,
+      ?,
+      ?,
+      ?,
+      ?,
+      ?,
+      ?,
+      ?
+    )"""
+
+    db.execute(create_game_query, pod)
     database.commit()
 
 
@@ -197,9 +352,22 @@ def jsonplayers():
 
     :return:            Dictionary with all players and all their information
     """
-    read = sql.read_sql(
-            "SELECT *, (SELECT COUNT(*) FROM players b WHERE b.ELO >= a.ELO AND Played > 0) AS Rank FROM players a WHERE Played > 0 ORDER BY ELO DESC",
-            database)
+    ranked_players_query = """
+    SELECT
+      *,
+      (
+       SELECT
+         COUNT(*)
+       FROM players b
+       WHERE b.ELO >= a.ELO
+         AND Played > 0
+      ) AS Rank
+    FROM players a
+    WHERE Played > 0
+    ORDER BY ELO DESC
+    """
+
+    read = sql.read_sql(ranked_players_query, database)
     read = read.to_dict(orient='records')
     results = {"players": read}
     return results
@@ -211,7 +379,13 @@ def jsongames():
 
     :return:            Dictionary with all games and all their information
     """
-    rows = db.execute("SELECT * FROM games").fetchall()
+    games_query = """
+    SELECT
+      *
+    FROM games
+    """
+
+    rows = db.execute(games_query).fetchall()
     results = {"games": [dict(ix) for ix in rows]}
     return json.dumps(results)
 
@@ -223,9 +397,22 @@ def jsonplayer(player):
     :param player:      Name of a player to check
     :return:            Dictionary with player and it's information
     """
-    db.execute(
-            "SELECT *, (SELECT COUNT(*) FROM players b WHERE b.ELO >= a.ELO AND Played > 0) AS Rank FROM players a WHERE Name = ? COLLATE NOCASE",
-            (player,))
+    ranked_player_query = """
+    SELECT
+      *,
+      (
+       SELECT
+         COUNT(*)
+       FROM players b
+       WHERE b.ELO >= a.ELO
+         AND Played > 0
+      ) AS Rank
+    FROM players a
+    WHERE Name = ?
+    COLLATE NOCASE
+    """
+
+    db.execute(ranked_player_query, (player, ))
     playerstats = {"player": [dict(db.fetchone())]}
     return playerstats
 
@@ -237,7 +424,15 @@ def jsongame(id):
     :param id:          ID of a game to check
     :return:            Dictionary with game and it's information
     """
-    db.execute("SELECT * FROM games WHERE ID = ? COLLATE NOCASE", (int(id),))
+    game_query = """
+    SELECT
+      *
+    FROM games
+    WHERE ID = ?
+    COLLATE NOCASE
+    """
+
+    db.execute(game_query, (int(id), ))
     gamestats = {"game": [dict(db.fetchone())]}
     return gamestats
 
@@ -248,7 +443,13 @@ def jsonrequests():
 
     :return:            Dictionary with all vouch requests
     """
-    rows = db.execute("SELECT * FROM vouchrequests").fetchall()
+    vouchers_query = """
+    SELECT
+      *
+    FROM vouchrequests
+    """
+
+    rows = db.execute(vouchers_query).fetchall()
     result = {"vouchrequests": [dict(ix) for ix in rows]}
     return result
 
@@ -261,16 +462,12 @@ def vouchrequest(name, about):
     :param about:       About player
     :return:            String with reply
     """
-    request = db.execute("SELECT 1 FROM vouchrequests WHERE name=? COLLATE NOCASE", (name,))
-    didrequest = request.fetchone()
-    vouched = db.execute("SELECT 1 FROM players WHERE name=? COLLATE NOCASE", (name,))
-    isvouched = vouched.fetchone()
-    if didrequest is not None:
+    if voucher_exists(name):
         reply = "Tried to send vouch request, but you already requested vouch."
-    elif isvouched is not None:
+    elif player_exists(name):
         reply = "Tried to send vouchrequest, but you are already vouched."
     else:
-        db.execute("INSERT INTO vouchrequests VALUES (?, ?)", (name, about))
-        database.commit()
-        reply = "Congratulations %s! Vouch request sent, we will process it as soon as possible!" % name
+        insert_vouch(name, about)
+        reply = """Congratulations {}! Vouch request sent,
+                   we will process it as soon as possible!""".format(name)
     return reply

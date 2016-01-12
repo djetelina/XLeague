@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-
 """
 Copyright (c) 2016 iScrE4m@gmail.com
 
@@ -26,12 +25,11 @@ def handle(auth, queues, msg):
     for instance in queues.itervalues():
         total_queued.append(instance.QueuedPlayers)
     player = db.getplayer(auth)
-
     """
     command                 List from message stripped of the command character
     name                    Name of the command entered by user
     args                    Arguments of the command
-    total_queued            List of all the players currently queued in any queue
+    total_queued            List of all players currently queued in any queue
     player                  Dictionary with player information
     """
 
@@ -53,29 +51,35 @@ def join(auth, total_queued, queues, args):
     IRC usage: '.join QueueName'
 
     :param auth:            Auth of the player
-    :param total_queued:    List of all the players currently queued in any queue
+    :param total_queued:    List of all players currently queued in any queue
     :param queues:          Dictionary with queue instances
     :param args:            Name of queue to join - also queue_to_join
     :return:                String with reply
     """
-    queue_to_join = queues[args[0]]
-    games = db.getrunning()
-    if auth is not None:
+    queue_name = args[0]
+    if queue_name not in queues:  # searching in keys
+        reply = "\n".join([
+            "Enter a valid queue name",
+            " (Draft, Sealed2, Sealed4, Sealed, Standard)"
+        ])
+    elif auth is not None:
+        games = db.getrunning()
         if auth not in total_queued and auth not in games:
+            queue_to_join = queues[queue_name]
             queue_to_join.add(auth)
             if queue_to_join.check() is True:
                 # TODO Figure out how to deal with starting a pod
                 reply = ""
             else:
-                to_start = str(queue_to_join.NeededToStart - queue_to_join.QueuedPlayers)
-                reply = "%s joined the %s queue. %s players to start - type .join %s to join" % (
-                    auth, args[0], to_start, args[0])
+                to_start = queue_to_join.to_start()
+                reply = "\n".join([
+                    "{} joined the {} queue. {} players to start",
+                    " - type .join {} to join"
+                ]).format(auth, args[0], to_start, args[0])
         else:
             reply = "You are already in a queue or in a game"
-    elif queue_to_join not in queues.values():
-        reply = "Enter a valid queue name (Draft, Sealed2, Sealed4, Sealed, Standard)"
     else:
-        reply = "You can't join a game, if you aren't vouched"
+        reply = "You can't join a game if you aren't vouched"
 
     return reply
 
@@ -93,7 +97,7 @@ def leave(auth, queues):
     for key, instance in queues.iteritems():
         if auth in instance.QueuedPlayers:
             instance.remove(auth)
-            reply = "%s left the %s queue" % (auth, key)
+            reply = "{} left the {} queue".format(auth, key)
             break
     else:
         reply = "You are not in any queue"
