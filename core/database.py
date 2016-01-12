@@ -466,7 +466,7 @@ def vouchrequest(name, about):
     if voucher_exists(name):
         reply = "Tried to send vouch request, but you already requested vouch."
     elif player_exists(name):
-        reply = "Tried to send vouchrequest, but you are already vouched."
+        reply = "Tried to send vouch request, but you are already vouched."
     else:
         insert_vouch(name, about)
         reply = """Congratulations {}! Vouch request sent,
