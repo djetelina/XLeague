@@ -110,8 +110,6 @@ def result(auth, player, args):
         if auth in game.players:
             reply = game.report_result(auth, args)
             return reply
-    if player['Judge'] == 1:
-        reply = games.force_result(args) # TODO
     else:
         reply = "You are not in any running game"
     return reply

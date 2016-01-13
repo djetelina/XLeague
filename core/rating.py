@@ -6,6 +6,7 @@ To use the code, you must contact the author directly and ask permission.
 """
 
 from __future__ import division
+from . import database as db
 
 Klow = 10
 Kmid = 15
@@ -46,23 +47,37 @@ def decide_e(player1, player2):
     return e
 
 
-def newelo(whose, winner, loser):
+def newelo(winner, loser):
     """
     Calculates new rating for a player, must be called twice for each player
 
-    :param whose:       'W' or 'L' to know if we are calculating
-                        rating for winner or loser
     :param winner:      Dictionary with Winner's info
     :param loser:       Dictionary with Loser's info
     :return:            Integer with final rating
     """
-    result = []
-    winnerk = decide_k(winner)
-    loserk = decide_k(loser)
-    winnere = decide_e(winner, loser)
-    losere = 1 - winnere
-    if whose == "W":
-        result = int((winner['ELO'] + winnerk * (1 - winnere)))
-    elif whose == "L":
-        result = int((loser['ELO'] + loserk * (0 - losere)))
+    winner_k = decide_k(winner)
+    loser_k = decide_k(loser)
+    winner_e = decide_e(winner, loser)
+    loser_e = 1 - winner_e
+    result = {
+        'W': int(winner['ELO'] + winner_k * (1 - winner_e)),
+        'L': int(loser['ELO'] + loser_k * (0 - loser_e))
+    }
     return result
+
+
+def match_confirmed(dic):
+    player_1 = db.getplayer(dic['auth'])
+    p1_score = int(dic['auth_score'])
+    player_2 = db.getplayer(dic['opponent'])
+    p2_score = int(dic['opponent_score'])
+    if p1_score > p2_score:
+        result = newelo(player_1, player_2)
+        # TODO Need to regain focus before continuing
+        reply = result
+    elif p2_score > p1_score:
+        result = newelo(player_2, player_1)
+        reply = result
+    else:
+        reply = "Couldn't determine winner, try again"
+    return reply

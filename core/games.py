@@ -3,15 +3,15 @@
 Copyright (c) 2016 iScrE4m@gmail.com
 
 To use the code, you must contact the author directly and ask permission.
-
-This is not going to be used, not as an object anyway, more at line 67
 """
 
 import string
 import random
 from . import database as db
+from . import rating
 
-running_games= []
+running_games = []
+
 
 class RunningGame:
     """
@@ -60,12 +60,60 @@ class RunningGame:
         return reply
 
     def report_result(self, auth, args):
+        """
+        Handles reports of results
+
+        :param auth:    String with name of player sending result
+        :param args:    Arguments of his command
+        :return:        String with reply
+        """
+        # Check if player doesn't already have result waiting for confirmation
+        if any(d['auth'] == auth for d in self.waiting_results):
+            previous_opponent = (d['opponent'] for d in self.waiting_results)
+            reply = "You already have a result waiting for confirmation from {}".format(previous_opponent)
+        # Check if message is confirmation
+        elif any(d['opponent'] == auth for d in self.waiting_results):
+            reply = self.confirm_result(auth, args)
+        # Queue result as waiting for confirmation
+        else:
+            match_score_auth, match_score_opponent = args[0], args[1]
+            opponent = args[2]
+            waiting_result = {
+                'auth': auth,
+                'opponent': opponent,
+                'auth_score': match_score_auth,
+                'opponent_score': match_score_opponent
+            }
+            self.waiting_results.append(waiting_result)
+            reply = "Result submitted, waiting for {} to confirm".format(opponent)
+        return reply
+
+    def confirm_result(self, auth, args):
+        """
+        Handles result waiting for confirmation
+
+        :param auth:    String with name of player confirming result
+        :param args:    Arguments of his command
+        :return:        String with reply
+        """
+        for d in self.waiting_results:
+            if d['opponent'] == auth:
+                wanted_dictionary = d
+                self.waiting_results.remove(d)
+                break
+        else:
+            reply = "Unexpected error when confirming result"
+            return reply
         match_score_auth, match_score_opponent = args[0], args[1]
         opponent = args[2]
-        if any(d['auth'] == auth for d in self.waiting_results):
-            previous_opponent = (d['opponent'] for d in self.waiting_results where )
-            # Fuck it, I should be using database for running games, not objects
-            # TODO create running_games database
-            reply = "You already have a result waiting for confirmation from "
-
+        compared_dictionary = {
+            'auth': opponent,
+            'opponent': auth,
+            'auth_score': match_score_opponent,
+            'opponent_score': match_score_auth
+        }
+        if compared_dictionary == wanted_dictionary:
+            reply = rating.match_confirmed(wanted_dictionary)
+        else:
+            reply = "Your reported results didn't match. Try again"
         return reply
