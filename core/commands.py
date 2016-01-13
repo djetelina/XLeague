@@ -6,6 +6,7 @@ To use the code, you must contact the author directly and ask permission.
 """
 
 from . import database as db
+from . import games
 
 
 def handle(auth, queues, msg):
@@ -101,4 +102,16 @@ def leave(auth, queues):
             break
     else:
         reply = "You are not in any queue"
+    return reply
+
+
+def result(auth, player, args):
+    for game in games.running_games:
+        if auth in game.players:
+            reply = game.report_result(auth, args)
+            return reply
+    if player['Judge'] == 1:
+        reply = games.force_result(args) # TODO
+    else:
+        reply = "You are not in any running game"
     return reply

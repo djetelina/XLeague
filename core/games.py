@@ -4,63 +4,44 @@ Copyright (c) 2016 iScrE4m@gmail.com
 
 To use the code, you must contact the author directly and ask permission.
 
-FIRST DRAFT of games handling
+This is not going to be used, not as an object anyway, more at line 67
 """
 
 import string
 import random
 from . import database as db
 
+running_games= []
 
 class RunningGame:
+    """
+    Actions to take:
 
-    def __init__(self, fullqueue):
-        self.GameType = fullqueue.GameType
-        self.leaderboard = fullqueue.leaderboard
-        self.players = fullqueue.QueuedPlayers
+    * Create game from pod
+    * Record result
+        * Keep track of opponents already matched together
+        * Only record once both players verify results
+        * Judge can force result record
+    * Close game
+    """
+
+    def __init__(self, full_queue):
+        self.GameType = full_queue.GameType
+        self.leaderboard = full_queue.leaderboard
+        self.players = full_queue.QueuedPlayers
+        self.matches_played = []
+        self.waiting_results= []
         self.create_game()
-        fullqueue.QueuedPlayers = []
+        full_queue.QueuedPlayers = []
 
     def create_game(self):
         """
-        Original function
+        Original function -  startpod in app.py
 
         Problems:   Requires instance of bot protocol to send passwords to users
                     which means sending the instance to command handler too
                     (something I wanted to avoid, but I guess it's just adding
                     too much work)
-
-        def startpod(self):
-            global GameOpen
-            global GameType
-            global QueuedPlayers
-            global runninggames
-            id = db.getgamenewid()
-            # Creating list for new database entry
-            # with new ID, is running and 0 games played, Pod, Type
-            pod = [id, "Yes", 0, NeededToStart, GameType]
-            # Generating password to send to players
-            password = ''.join(
-                random.SystemRandom().choice(string.ascii_uppercase + string.digits)
-                for _ in range(7))
-            # Send each player the password and add him to database
-            for queued in QueuedPlayers:
-                pod.append(queued)
-                msg = "Your {} has started. Password: '{}'".format(GameType, password)
-                queued = queued.encode('UTF-8', 'replace')
-                sendmsg(self, queued, msg)
-            # If pod has fewer than 8 people,
-            # this will make sure we give enough data to the database
-            while len(pod) < 13:
-                pod.append("None")
-            db.creategame(pod)
-            runninggames.append(str(id))
-            msg = "Game #{} - {} is starting".format(id, GameType)
-            # Close queuing
-            GameOpen = 0
-            GameType = 0
-            QueuedPlayers = []
-            return msg
         """
         new_id = db.getgamenewid()
         database_entry = [new_id, ]  # TODO This has to be filled based on new database structure
@@ -75,12 +56,16 @@ class RunningGame:
             database_entry.append("None")
         db.creategame(database_entry)
         reply = "Game {} - {} is starting".format(id, self.GameType)
+        running_games.append(self)
         return reply
 
-    def close_game(self):
-        """
-        I'm thinking way too much in copying way, not properly abusing object capabilities.
-        I just wanted to commit outline of what join function should be calling
+    def report_result(self, auth, args):
+        match_score_auth, match_score_opponent = args[0], args[1]
+        opponent = args[2]
+        if any(d['auth'] == auth for d in self.waiting_results):
+            previous_opponent = (d['opponent'] for d in self.waiting_results where )
+            # Fuck it, I should be using database for running games, not objects
+            # TODO create running_games database
+            reply = "You already have a result waiting for confirmation from "
 
-        // iScrE4m
-        """
+        return reply
