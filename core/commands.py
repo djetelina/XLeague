@@ -64,13 +64,14 @@ def join(auth, total_queued, queues, args):
             " (Draft, Sealed2, Sealed4, Sealed, Standard)"
         ])
     elif auth is not None:
-        games = db.getrunning()
-        if auth not in total_queued and auth not in games:
+        running_games = db.getrunning()
+        if auth not in total_queued and auth not in running_games:
             queue_to_join = queues[queue_name]
             queue_to_join.add(auth)
+            # Check if queue has been filled
             if queue_to_join.check() is True:
-                # TODO Figure out how to deal with starting a pod
-                reply = ""
+                reply = "Queue has been filled, starting a game"
+                games.RunningGame(queue_to_join)
             else:
                 to_start = queue_to_join.to_start()
                 reply = "\n".join([

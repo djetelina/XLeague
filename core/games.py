@@ -9,6 +9,7 @@ import string
 import random
 from . import database as db
 from . import rating
+from ..import settings as s
 
 running_games = []
 
@@ -30,7 +31,7 @@ class RunningGame:
         self.leaderboard = full_queue.leaderboard
         self.players = full_queue.QueuedPlayers
         self.matches_played = []
-        self.waiting_results= []
+        self.waiting_results = []
         self.create_game()
         full_queue.QueuedPlayers = []
 
@@ -39,6 +40,7 @@ class RunningGame:
         Original function -  startpod in app.py
 
         Problems:   Requires instance of bot protocol to send passwords to users
+                    and for a reply message (__init_ can't return)
                     which means sending the instance to command handler too
                     (something I wanted to avoid, but I guess it's just adding
                     too much work)
@@ -51,13 +53,13 @@ class RunningGame:
         for player in self.players:
             database_entry.append(player)
             msg = "{} you were in queue for has started. Password: '{}'".format(self.GameType, password)
-            BOTINSTANCE.msg(player, msg)
+            BOTINSTANCE.msg(player, msg)  # TODO send bot instance
         while len(database_entry) < 13:  # TODO This has to be edited based on new database structure
             database_entry.append("None")
         db.creategame(database_entry)
         reply = "Game {} - {} is starting".format(id, self.GameType)
         running_games.append(self)
-        return reply
+        BOTINSTANCE.msg(s.channel, reply)  # TODO send bot instance
 
     def report_result(self, auth, args):
         """
@@ -67,13 +69,17 @@ class RunningGame:
         :param args:    Arguments of his command
         :return:        String with reply
         """
-        # Check if player doesn't already have result waiting for confirmation
-        if any(d['auth'] == auth for d in self.waiting_results):
-            previous_opponent = (d['opponent'] for d in self.waiting_results)
-            reply = "You already have a result waiting for confirmation from {}".format(previous_opponent)
-        # Check if message is confirmation
-        elif any(d['opponent'] == auth for d in self.waiting_results):
-            reply = self.confirm_result(auth, args)
+        # Iterate over results waiting for confirmation
+        for d in self.waiting_results:
+            # Check if player only didn't submit another result
+            if auth == d['auth']:
+                previous_opponent = d['opponent']
+                reply = "You already have a result waiting for confirmation from {}".format(previous_opponent)
+                break
+            # Check if message is confirmation
+            elif auth == d['opponent']:
+                reply = self.confirm_result(auth, args)
+                break
         # Queue result as waiting for confirmation
         else:
             match_score_auth, match_score_opponent = args[0], args[1]

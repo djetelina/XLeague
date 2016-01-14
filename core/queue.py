@@ -30,18 +30,38 @@ class Game(object):
         # https://gist.github.com/Janiczek/83f0a063f3a9dbadc0b2
 
     def add(self, player):
+        """
+        Adds player to list of queued players
+
+        :param player:  String with player name
+        """
         self.QueuedPlayers.append(player)
 
     def remove(self, player):
+        """
+        Removes player from list of queued players
+
+        :param player:  String with player name
+        """
         self.QueuedPlayers.remove(player)
 
     def check(self):
+        """
+        Checks if queue is full
+
+        :return:    True/False
+        """
         if len(self.QueuedPlayers) == self.NeededToStart:
             return True
         else:
             return False
 
     def to_start(self):
+        """
+        Calculates number players needed to fill the queue
+
+        :return:    Int with players needed
+        """
         return self.NeededToStart - len(self.QueuedPlayers)
 
 

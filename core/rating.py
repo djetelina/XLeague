@@ -66,6 +66,7 @@ def newelo(winner, loser):
     return result
 
 
+#  TODO Ugly as fuck
 def match_confirmed(dic):
     player_1 = db.getplayer(dic['auth'])
     p1_score = int(dic['auth_score'])
