@@ -52,7 +52,7 @@ class RunningGame:
                 for _ in range(7))
         for player in self.players:
             database_entry.append(player)
-            msg = "{} you were in queue for has started. Password: '{}'".format(self.GameType, password)
+            msg = "Queue for {} you were in has started. Password: '{}'".format(self.GameType, password)
             BOTINSTANCE.msg(player, msg)  # TODO send bot instance
         while len(database_entry) < 13:  # TODO This has to be edited based on new database structure
             database_entry.append("None")
@@ -116,7 +116,8 @@ class RunningGame:
             'auth': opponent,
             'opponent': auth,
             'auth_score': match_score_opponent,
-            'opponent_score': match_score_auth
+            'opponent_score': match_score_auth,
+            'ladder_type': self.leaderboard
         }
         if compared_dictionary == wanted_dictionary:
             reply = rating.match_confirmed(wanted_dictionary)

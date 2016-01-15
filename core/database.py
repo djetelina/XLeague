@@ -32,7 +32,7 @@ def getplayer(player):
     """
     get_player_query = """
     SELECT
-      *
+      1
     FROM players
     WHERE Name = ?
     COLLATE NOCASE
@@ -43,28 +43,58 @@ def getplayer(player):
     return playerstats
 
 
-def ratingchange(name, elo, played, w, l):
+def rating_change(name, ladder, rating, factor, streak, gwon, glost, mplayed, mwon, mlost):
     """
-    Changes rating of a player
+    Updates rating of a player
 
-    :param name:        Name of a player to edit
-    :param elo:         New rating
-    :param played:      New number of games played
-    :param w:           New number of games won
-    :param l:           New number of games lost
+    :param name:        Name of the player
+    :param ladder:      String with ladder type
+    :param rating:      Float with rating
+    :param factor:      Float with public rating factor
+    :param streak:      Int with new streak
+    :param gwon:        Int with new games won
+    :param glost:       Int with new games lost
+    :param mplayed:     Int with new matches played
+    :param mwon:        Int with new matches won
+    :param mlost:       Int with new matches lost
     """
-    update_player_query = """
-    UPDATE players
-    SET
-      ELO = ?,
-      Played = ?,
-      W = ?,
-      L = ?
-    WHERE Name = ?
-    COLLATE NOCASE
-    """
+    if ladder == "limited":
+        update_player_query = """
+        UPDATE players
+        SET
+          LHiddenRating = ?,
+          LPub_Factor = ?,
+          LStreak = ?,
+          LGamesPlayed = LGamesPlayed + 1,
+          LGamesWon = ?,
+          LGamesLost = ?,
+          LMatchesPlayed = ?,
+          LMatchesWon = ?,
+          LMatchesLost = ?
+        WHERE Name = ?
+        COLLATE NOCASE
+        """
+    elif ladder == "constructed":
+        update_player_query = """
+        UPDATE players
+        SET
+          CHiddenRating = ?,
+          CPub_Factor = ?,
+          CStreak = ?,
+          CGamesPlayed = CGamesPlayed + 1,
+          CGamesWon = ?,
+          CGamesLost = ?,
+          CMatchesPlayed = ?,
+          CMatchesWon = ?,
+          CMatchesLost = ?
+        WHERE Name = ?
+        COLLATE NOCASE
+        """
+    else:
+        print "Unknown ladder error in rating change"
+        return
 
-    db.execute(update_player_query, (elo, played, w, l, name))
+    db.execute(update_player_query, (rating, factor, streak, gwon, glost, mplayed, mwon, mlost, name))
     database.commit()
 
 
@@ -74,20 +104,18 @@ def vouchplayer(vouched):
 
     :param vouched:     Name of a player to be added
     """
-    newid = getgamenewid()
+
     insert_player_query = """
-    INSERT INTO players
+    INSERT INTO players (
+      Name,
+      Created
+    )
     VALUES (
       ?,
-      ?,
-      0,
-      1500,
-      0,
-      0,
-      0
+      'now'
     )"""
 
-    db.execute(insert_player_query, (newid, vouched))
+    db.execute(insert_player_query, vouched)
     database.commit()
 
 
@@ -95,7 +123,8 @@ def player_exists(name):
     """
     Returns True if a player for the name exists
 
-    :param name:       Player name
+    :param name:        Player name
+    :return:            True/False
     """
     player_exists_query = """
     SELECT
@@ -111,13 +140,13 @@ def player_exists(name):
     return exists
 
 
-def voucher_exists(name):
+def vouch_request_exists(name):
     """
     Returns True if a voucher for the name exists
 
     :param name:       Player name
     """
-    voucher_exists_query = """
+    vouche_request_exists_query = """
     SELECT
       1
     FROM vouchrequests
@@ -125,72 +154,72 @@ def voucher_exists(name):
     COLLATE NOCASE
     """
 
-    db.execute(voucher_exists_query, (name, ))
-    voucher = db.fetchone()
-    exists = voucher is not None
+    db.execute(vouche_request_exists_query, (name, ))
+    vouche_request = db.fetchone()
+    exists = vouche_request is not None
     return exists
 
 
-def insert_vouch(name, about):
+def insert_vouch_request(name, about):
     """
     Inserts a vouch
 
     :param name:       Player name
     :param about:      About the player
     """
-    insert_vouch_query = """
-    INSERT INTO vouchrequests
+    insert_vouch_request_query = """
+    INSERT INTO vouch_requests
     VALUES (
       ?,
       ?
     )
     """
 
-    db.execute(insert_vouch_query, (name, about))
+    db.execute(insert_vouch_request_query, (name, about))
     database.commit()
 
 
-def delete_vouch(name):
+def delete_vouch_request(name):
     """
     Deletes a vouch
 
     :param name:       Player name
     """
-    delete_vouch_query = """
-    DELETE FROM vouchrequests
+    delete_vouch_request_query = """
+    DELETE FROM vouch_requests
     WHERE name=?
     COLLATE NOCASE
     """
 
-    db.execute(delete_vouch_query, (name, ))
+    db.execute(delete_vouch_request_query, (name, ))
     database.commit()
 
 
-def confirmvouch(name):
+def confirm_vouch_req(name):
     """
     Confirms vouch request
 
     :param name:        Player name
     :return:            String with reply
     """
-    if voucher_exists(name):
+    if vouch_request_exists(name):
         vouchplayer(name)
-        delete_vouch(name)
+        delete_vouch_request(name)
         reply = "{} vouched.".format(name)
     else:
         reply = "Couldn't vouch {}.".format(name)
     return reply
 
 
-def denyvouch(name):
+def deny_vouch_req(name):
     """
     Denies vouch request
 
     :param name:        Player name
     :return:            String with reply
     """
-    if voucher_exists(name):
-        delete_vouch(name)
+    if vouch_request_exists(name):
+        delete_vouch_request(name)
         reply = "Vouch request by {} denied.".format(name)
     else:
         reply = "Couldn't find {} in vouch requests.".format(name)
@@ -463,12 +492,12 @@ def vouchrequest(name, about):
     :param about:       About player
     :return:            String with reply
     """
-    if voucher_exists(name):
+    if vouch_request_exists(name):
         reply = "Tried to send vouch request, but you already requested vouch."
     elif player_exists(name):
         reply = "Tried to send vouch request, but you are already vouched."
     else:
-        insert_vouch(name, about)
+        insert_vouch_request(name, about)
         reply = """Congratulations {}! Vouch request sent,
                    we will process it as soon as possible!""".format(name)
     return reply

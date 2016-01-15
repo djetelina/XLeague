@@ -309,7 +309,7 @@ class XLeagueBot(irc.IRCClient):
             if judge['Judge'] == 1:
                 msg += "\n".join([
                     "", "===== JUDGE COMMANDS =====",
-                    ".confirmvouch <nick> ~~~ Vouches player (or .denyvouch)",
+                    ".confirm_vouch_req <nick> ~~~ Vouches player (or .deny_vouch_req)",
                     ".open <GameType> <Players> ~~~ Opens a draft/sealed for" +
                     " number of players",
                     ".close <GameID> ~~~ Closes game (Used for games in" +
@@ -322,24 +322,24 @@ class XLeagueBot(irc.IRCClient):
 
         # Judge commands
 
-        if msg.startswith(".confirmvouch"):
+        if msg.startswith(".confirm_vouch_req"):
             authed = yield self.deferredwhois(user)
             judge = db.getplayer(authed)
             if judge['Judge'] == 1:
                 vouched = msg.split()
                 vouched = vouched[1]
-                msg = db.confirmvouch(vouched)
+                msg = db.confirm_vouch_req(vouched)
             else:
                 msg = "You don't have sufficient permissions to vouch anybody"
             sendmsg(self, channel, msg)
 
-        if msg.startswith(".denyvouch"):
+        if msg.startswith(".deny_vouch_req"):
             authed = yield self.deferredwhois(user)
             judge = db.getplayer(authed)
             if judge['Judge'] == 1:
                 vouched = msg.split()
                 vouched = vouched[1]
-                msg = db.denyvouch(vouched)
+                msg = db.deny_vouch_req(vouched)
             else:
                 msg = " ".join([
                     "You don't have sufficient permissions",
@@ -403,8 +403,8 @@ class XLeagueBot(irc.IRCClient):
                     winner, winnerelo, changewinner, loser, loserelo,
                     changeloser)
 
-                db.ratingchange(winner, winnerelo, playedw, ww, lw)
-                db.ratingchange(loser, loserelo, playedl, wl, ll)
+                db.rating_change(winner, winnerelo, playedw, ww, lw)
+                db.rating_change(loser, loserelo, playedl, wl, ll)
 
                 game = db.getgameid(id)
                 played = game['GamesPlayed'] + 1
