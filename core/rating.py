@@ -91,12 +91,11 @@ def newelo(winner, loser, ladder):
     return result
 
 
-def match_confirmed(dic):
-    # Fuck I forgot about implementing hidden rating, we will fight again later!
+def match_confirmed(data):
     """
     Call this when you have confirmed result of a match
 
-    :param dic:     Dictionary with player names and scores
+    :param data:     Dictionary with player names and scores
                         'auth'              : String with name of Player 1
                         'opponent'          : String with name of Player 2
                         'auth_score'        : String with score of player 1
@@ -105,15 +104,25 @@ def match_confirmed(dic):
     :return:        String with names, new ratings and rating changes
     """
     # Get player info from DB
-    player_1 = db.getplayer(dic['auth'])
-    player_2 = db.getplayer(dic['opponent'])
+    player_1 = db.getplayer(data['auth'])
+    player_2 = db.getplayer(data['opponent'])
     # Get score of players
-    p1_score = int(dic['auth_score'])
-    p2_score = int(dic['opponent_score'])
+    p1_score = int(data['auth_score'])
+    p2_score = int(data['opponent_score'])
+    """
+    TODO
+    Non code logic:
+    - For each match, change hidden rating
+    - Adjust overall rating change to streak (breakpoints)
+    - Send public rating (HiddenRating*PubFactor)
+    - Write new data to database (rating, game, match, streak, factor)
+
+    Code below this is wrong, as are most of the called functions
+    """
     if p1_score > p2_score:
-        result = newelo(player_1, player_2, dic['ladder_type'])
+        result = newelo(player_1, player_2, data['ladder_type'])
     elif p2_score > p1_score:
-        result = newelo(player_2, player_1, dic['ladder_type'])
+        result = newelo(player_2, player_1, data['ladder_type'])
     else:
         reply = "Couldn't determine winner, try again"
         return reply
@@ -121,8 +130,8 @@ def match_confirmed(dic):
     l_newelo = result['L']
     w_diff = result['W_difference']
     l_diff = result['L_difference']
-    reply = "New ratings: {}: {} [{}], {}: {} [{}]".format(dic['auth'], w_newelo,
-                                                           w_diff, dic['opponent'],
+    reply = "New ratings: {}: {} [{}], {}: {} [{}]".format(data['auth'], w_newelo,
+                                                           w_diff, data['opponent'],
                                                            l_newelo, l_diff
                                                            )
     return reply

@@ -112,7 +112,7 @@ def vouchplayer(vouched):
     )
     VALUES (
       ?,
-      'now'
+      date('now')
     )"""
 
     db.execute(insert_player_query, vouched)

@@ -63,7 +63,7 @@ class Application(cyclone.web.Application):
 
 class MainHandler(cyclone.web.RequestHandler):
     def get(self):
-        self.render("apidocs.html")
+        self.render("api_docs.html")
 
 
 class requestvouch(cyclone.web.RequestHandler):
