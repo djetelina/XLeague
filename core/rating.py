@@ -8,9 +8,137 @@ To use the code, you must contact the author directly and ask permission.
 from __future__ import division
 from . import database as db
 
-Klow = 10
-Kmid = 15
-Khigh = 20
+
+class RatingChange:
+    """
+    TODO
+    Non code logic:
+    - For each match, change hidden rating
+    - Adjust overall rating change to streak (breakpoints)
+    - Send public rating (HiddenRating*PubFactor)
+    - Write new data to database (rating, game, match, streak, factor)
+    """
+
+    def __init__(self, data):
+        """
+        Create this object when you have confirmed results
+        then call .process
+
+        :param data:     Dictionary with player names and scores
+                            'auth'              : String with name of Player 1
+                            'opponent'          : String with name of Player 2
+                            'auth_score'        : String with score of player 1
+                            'opponent_score'    : String with score of player 2
+                            'ladder_type'       : String with ladder_type
+        """
+        self.player_1_db = db.getplayer(data['auth'])
+        self.player_2_db = db.getplayer(data['opponent'])
+        self.p1_score = data['auth_score']
+        self.p2_score = data['opponent_score']
+        if data['ladder_type'] == "constructed":
+            self.player_1 = {
+                'rating_start': self.player_1_db['CHiddenRating'],
+                'rating_final': self.player_1_db['CHiddenRating'],
+                'streak': self.player_1_db['CStreak'],
+                'factor': self.player_1_db['CPub_Factor']
+            }
+            self.player_2 = {
+                'rating_start': self.player_2_db['CHiddenRating'],
+                'rating_final': self.player_2_db['CHiddenRating'],
+                'streak': self.player_2_db['CStreak'],
+                'factor': self.player_2_db['CPub_Factor']
+            }
+        elif data['ladder_type'] == "limited":
+            self.player_1 = {
+                'rating_start': self.player_1_db['LHiddenRating'],
+                'rating_final': self.player_1_db['LHiddenRating'],
+                'streak': self.player_1_db['LStreak'],
+                'factor': self.player_1_db['LPub_Factor']
+            }
+            self.player_2 = {
+                'rating_start': self.player_2_db['LHiddenRating'],
+                'rating_final': self.player_2_db['LHiddenRating'],
+                'streak': self.player_2_db['LStreak'],
+                'factor': self.player_2_db['LPub_Factor']
+            }
+        self.player_1.update({
+            'k': decide_k(self.player_1_db),
+            'game_increase': 1,
+            'gw_increase': 0,
+            'gl_increase': 0,
+            'match_increase': self.p1_score + self.p2_score,
+            'mw_increase': self.p1_score,
+            'ml_increase': self.p2_score
+        })
+        self.player_2.update({
+            'k': decide_k(self.player_2_db),
+            'game_increase': 1,
+            'gw_increase': 0,
+            'gl_increase': 0,
+            'match_increase': self.p1_score + self.p2_score,
+            'mw_increase': self.p2_score,
+            'ml_increase': self.p1_score
+        })
+        self.winner = 0
+        self.decide_winner()
+
+    def decide_winner(self):
+        if self.p1_score > self.p2_score:
+            self.winner = 1
+            self.player_1['gw_increase'] = 1
+            self.player_2['gl_increase'] = 1
+        elif self.p1_score < self.p2_score:
+            self.winner = 2
+            self.player_2['gw_increase'] = 1
+            self.player_1['gl_increase'] = 1
+        else:
+            self.winner = 0
+
+    def process(self):
+        while self.p1_score > 0:
+            self.p1_score -= 1
+            self.elo(1)
+        while self.p2_score > 0:
+            self.p2_score -= 1
+            self.elo(2)
+        if self.winner == 1:
+            self.player_1['streak'] += 1
+            self.player_2['streak'] = 0
+            if self.player_1['factor'] < 1:
+                self.player_1['factor'] += 0.1
+        elif self.winner == 2:
+            self.player_2['streak'] += 1
+            self.player_1['streak'] = 0
+            if self.player_2['factor'] < 1:
+                self.player_2['factor'] += 0.1
+        # TODO streak processing
+        p1_public = int(self.player_1['rating_final'] * self.player_1['factor'])
+        p2_public = int(self.player_2['rating_final'] * self.player_2['factor'])
+        p1_diff = rating_diff(self.player_1['rating_start'], self.player_1['rating_final'])
+        p2_diff = rating_diff(self.player_2['rating_start'], self.player_2['rating_final'])
+        reply = "New ratings: {}: {} [{}], {}: {} [{}]".format(self.player_1_db['Name'],
+                                                               p1_public, p1_diff,
+                                                               self.player_2_db['Name'],
+                                                               p2_public, p2_diff)
+        return reply
+
+    def elo(self, winner):
+        p1_e = decide_e(self.player_1['rating_final'], self.player_2['rating_final'])
+        p2_e = 1 - p1_e
+        if winner == 1:
+            self.player_1['rating_final'] = (
+                self.player_1['rating_final'] + self.player_1['k'] * (1 - p1_e)
+            )
+            self.player_2['rating_final'] = (
+                self.player_2['rating_final'] + self.player_2['k'] * (0 - p2_e)
+            )
+        elif winner == 2:
+            self.player_1['rating_final'] = (
+                self.player_1['rating_final'] + self.player_1['k'] * (0 - p1_e)
+            )
+            self.player_2['rating_final'] = (
+                self.player_2['rating_final'] + self.player_2['k'] * (1 - p2_e)
+            )
 
 
 def decide_k(player):
@@ -22,7 +150,9 @@ def decide_k(player):
 
     More dynamic k factor code
     (currently testing what feels the most fair to our users)
-
+    Klow = 10
+    Kmid = 15
+    Khigh = 20
     played = player['Played']
     if played <= 20:
         k = Khigh
@@ -55,83 +185,5 @@ def rating_diff(old, new):
     :param new:         Int with new rating
     :return:            Int with rating difference
     """
-    result = new - old
+    result = int(new - old)
     return result
-
-
-def newelo(winner, loser, ladder):
-    """
-    Calculates new rating for a player, must be called twice for each player
-
-    :param winner:      Dictionary with Winner's info
-    :param loser:       Dictionary with Loser's info
-    :param ladder:      String with ladder type (limited/constructed)
-    :return:            Dictionary with new rating information
-    """
-    winner_k = decide_k(winner)
-    loser_k = decide_k(loser)
-    if ladder == 'constructed':
-        winner_elo = winner['Rating_H_C']
-        loser_elo = loser['Rating_H_C']
-    elif ladder == 'limited':
-        winner_elo = winner['Rating_H_L']
-        loser_elo = loser['Rating_H_L']
-    else:
-        return "Error: Invalid ladder type"
-    winner_e = decide_e(winner_elo, loser_elo)
-    loser_e = 1 - winner_e
-    w_newelo = int(winner_elo + winner_k * (1 - winner_e))
-    l_newelo = int(loser_elo + loser_k * (0 - loser_e))
-    result = {
-        'W': str(w_newelo),
-        'W_difference': str(rating_diff(winner_elo, w_newelo)),
-        'L': str(l_newelo),
-        'L_difference': str(rating_diff(loser_elo, l_newelo))
-    }
-    return result
-
-
-def match_confirmed(data):
-    """
-    Call this when you have confirmed result of a match
-
-    :param data:     Dictionary with player names and scores
-                        'auth'              : String with name of Player 1
-                        'opponent'          : String with name of Player 2
-                        'auth_score'        : String with score of player 1
-                        'opponent_score'    : String with score of player 2
-                        'ladder_type'       : String with ladder_type
-    :return:        String with names, new ratings and rating changes
-    """
-    # Get player info from DB
-    player_1 = db.getplayer(data['auth'])
-    player_2 = db.getplayer(data['opponent'])
-    # Get score of players
-    p1_score = int(data['auth_score'])
-    p2_score = int(data['opponent_score'])
-    """
-    TODO
-    Non code logic:
-    - For each match, change hidden rating
-    - Adjust overall rating change to streak (breakpoints)
-    - Send public rating (HiddenRating*PubFactor)
-    - Write new data to database (rating, game, match, streak, factor)
-
-    Code below this is wrong, as are most of the called functions
-    """
-    if p1_score > p2_score:
-        result = newelo(player_1, player_2, data['ladder_type'])
-    elif p2_score > p1_score:
-        result = newelo(player_2, player_1, data['ladder_type'])
-    else:
-        reply = "Couldn't determine winner, try again"
-        return reply
-    w_newelo = result['W']
-    l_newelo = result['L']
-    w_diff = result['W_difference']
-    l_diff = result['L_difference']
-    reply = "New ratings: {}: {} [{}], {}: {} [{}]".format(data['auth'], w_newelo,
-                                                           w_diff, data['opponent'],
-                                                           l_newelo, l_diff
-                                                           )
-    return reply

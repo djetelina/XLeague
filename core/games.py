@@ -74,11 +74,13 @@ class RunningGame:
             # Check if player only didn't submit another result
             if auth == d['auth']:
                 previous_opponent = d['opponent']
-                reply = "You already have a result waiting for confirmation from {}".format(previous_opponent)
+                reply = "You already have a result waiting for confirmation from {}".format(
+                        previous_opponent)
                 break
             # Check if message is confirmation
             elif auth == d['opponent']:
-                reply = self.confirm_result(auth, args)
+                rating_change = rating.RatingChange(data)
+                reply = rating_change.process()
                 break
         # Queue result as waiting for confirmation
         else:
