@@ -7,7 +7,7 @@ To use the code, you must contact the author directly and ask permission.
 
 from __future__ import division
 from . import database as db
-
+from ..import settings as s
 
 class RatingChange:
     """
@@ -101,25 +101,36 @@ class RatingChange:
         while self.p2_score > 0:
             self.p2_score -= 1
             self.elo(2)
+        highest_streak = 1
         if self.winner == 1:
             self.player_1['streak'] += 1
             self.player_2['streak'] = 0
             if self.player_1['factor'] < 1:
                 self.player_1['factor'] += 0.1
+            for streak in s.streaks.keys():
+                if self.player_1['streak'] > streak:
+                    highest_streak = s.streaks.value()
+                self.player_1['rating_final'] = self.player_1['rating_final'] * highest_streak
         elif self.winner == 2:
             self.player_2['streak'] += 1
             self.player_1['streak'] = 0
             if self.player_2['factor'] < 1:
                 self.player_2['factor'] += 0.1
-        # TODO streak processing
+            for streak in s.streaks.keys():
+                if self.player_2['streak'] > streak:
+                    highest_streak = s.streaks.value()
+                self.player_2['rating_final'] = self.player_2['rating_final'] * highest_streak
         p1_public = int(self.player_1['rating_final'] * self.player_1['factor'])
         p2_public = int(self.player_2['rating_final'] * self.player_2['factor'])
         p1_diff = rating_diff(self.player_1['rating_start'], self.player_1['rating_final'])
         p2_diff = rating_diff(self.player_2['rating_start'], self.player_2['rating_final'])
-        reply = "New ratings: {}: {} [{}], {}: {} [{}]".format(self.player_1_db['Name'],
-                                                               p1_public, p1_diff,
-                                                               self.player_2_db['Name'],
-                                                               p2_public, p2_diff)
+        # TODO write to database
+        reply = "New ratings: {}: {} [{}] Streak:{}, {}: {} [{}] Streak:{}".format(self.player_1_db['Name'],
+                                                                                   p1_public, p1_diff,
+                                                                                   self.player_1['streak'],
+                                                                                   self.player_2_db['Name'],
+                                                                                   p2_public, p2_diff,
+                                                                                   self.player_2['streak'])
         return reply
 
     def elo(self, winner):

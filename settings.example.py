@@ -5,6 +5,13 @@ Copyright (c) 2016 iScrE4m@gmail.com
 To use the code, you must contact the author directly and ask permission.
 """
 """
+STREAKS
+
+number of wins:change multiplier
+"""
+
+streaks = {3: 1.01, 5: 1.02, 10: 1.04}
+"""
 IRC SETTINGS
 
 network:    IRC network to connect to
