@@ -8,6 +8,9 @@ To use the code, you must contact the author directly and ask permission.
 STREAKS
 
 number of wins:change multiplier
+
+After a win if number of wins in a row is higher than the first number,
+multiply rating by the second number.
 """
 
 streaks = {3: 1.01, 5: 1.02, 10: 1.04}

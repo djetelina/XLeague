@@ -9,14 +9,10 @@ from __future__ import division
 from . import database as db
 from ..import settings as s
 
+
 class RatingChange:
     """
-    TODO
-    Non code logic:
-    - For each match, change hidden rating
-    - Adjust overall rating change to streak (breakpoints)
-    - Send public rating (HiddenRating*PubFactor)
-    - Write new data to database (rating, game, match, streak, factor)
+    This code is a mess and should probably be rethinked
     """
 
     def __init__(self, data):
@@ -101,6 +97,21 @@ class RatingChange:
         while self.p2_score > 0:
             self.p2_score -= 1
             self.elo(2)
+        self.process_winner()
+        p1_public = int(self.player_1['rating_final'] * self.player_1['factor'])
+        p2_public = int(self.player_2['rating_final'] * self.player_2['factor'])
+        p1_diff = rating_diff(self.player_1['rating_start'], self.player_1['rating_final'])
+        p2_diff = rating_diff(self.player_2['rating_start'], self.player_2['rating_final'])
+        # TODO write to database
+        reply = "New ratings: {}: {} [{}] Streak:{}, {}: {} [{}] Streak:{}".format(self.player_1_db['Name'],
+                                                                                   p1_public, p1_diff,
+                                                                                   self.player_1['streak'],
+                                                                                   self.player_2_db['Name'],
+                                                                                   p2_public, p2_diff,
+                                                                                   self.player_2['streak'])
+        return reply
+
+    def process_winner(self):
         highest_streak = 1
         if self.winner == 1:
             self.player_1['streak'] += 1
@@ -120,18 +131,6 @@ class RatingChange:
                 if self.player_2['streak'] > streak:
                     highest_streak = s.streaks.value()
                 self.player_2['rating_final'] = self.player_2['rating_final'] * highest_streak
-        p1_public = int(self.player_1['rating_final'] * self.player_1['factor'])
-        p2_public = int(self.player_2['rating_final'] * self.player_2['factor'])
-        p1_diff = rating_diff(self.player_1['rating_start'], self.player_1['rating_final'])
-        p2_diff = rating_diff(self.player_2['rating_start'], self.player_2['rating_final'])
-        # TODO write to database
-        reply = "New ratings: {}: {} [{}] Streak:{}, {}: {} [{}] Streak:{}".format(self.player_1_db['Name'],
-                                                                                   p1_public, p1_diff,
-                                                                                   self.player_1['streak'],
-                                                                                   self.player_2_db['Name'],
-                                                                                   p2_public, p2_diff,
-                                                                                   self.player_2['streak'])
-        return reply
 
     def elo(self, winner):
         p1_e = decide_e(self.player_1['rating_final'], self.player_2['rating_final'])
