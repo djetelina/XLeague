@@ -79,6 +79,10 @@ class RatingChange:
         self.decide_winner()
 
     def decide_winner(self):
+        """
+        Decides winner for later use and increases game wins and game losses
+        increases for database write later
+        """
         if self.p1_score > self.p2_score:
             self.winner = 1
             self.player_1['gw_increase'] = 1
@@ -91,6 +95,9 @@ class RatingChange:
             self.winner = 0
 
     def process(self):
+        """
+        The main logic
+        """
         while self.p1_score > 0:
             self.p1_score -= 1
             self.elo(1)
@@ -112,6 +119,9 @@ class RatingChange:
         return reply
 
     def process_winner(self):
+        """
+        Processes winner - adds streak, increases factor, applies streak
+        """
         highest_streak = 1
         if self.winner == 1:
             self.player_1['streak'] += 1
@@ -133,6 +143,12 @@ class RatingChange:
                 self.player_2['rating_final'] = self.player_2['rating_final'] * highest_streak
 
     def elo(self, winner):
+        """
+        Calculates  rating
+
+        :param winner:      Int 1 or 2 - depends which player_X is winner
+        :return:
+        """
         p1_e = decide_e(self.player_1['rating_final'], self.player_2['rating_final'])
         p2_e = 1 - p1_e
         if winner == 1:
