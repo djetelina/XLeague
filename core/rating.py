@@ -31,6 +31,7 @@ class RatingChange:
         self.player_2_db = db.getplayer(data['opponent'])
         self.p1_score = data['auth_score']
         self.p2_score = data['opponent_score']
+        self.ladder = data['ladder_type']
         if data['ladder_type'] == "constructed":
             self.player_1 = {
                 'rating_start': self.player_1_db['CHiddenRating'],
@@ -109,7 +110,11 @@ class RatingChange:
         p2_public = int(self.player_2['rating_final'] * self.player_2['factor'])
         p1_diff = rating_diff(self.player_1['rating_start'], self.player_1['rating_final'])
         p2_diff = rating_diff(self.player_2['rating_start'], self.player_2['rating_final'])
-        # TODO write to database
+        db.rating_change(self.player_1_db['Name'], self.ladder, self.player_1['rating, final'],
+                         self.player_1['factor'], self.player_1['streak'], self.player_1['gw_increase'],
+                         self.player_1['gl_increase'], self.player_1['match_increase'],
+                         self.player_1['mw_increase'], self.player_1['ml_increase'],
+                         )
         reply = "New ratings: {}: {} [{}] Streak:{}, {}: {} [{}] Streak:{}".format(self.player_1_db['Name'],
                                                                                    p1_public, p1_diff,
                                                                                    self.player_1['streak'],

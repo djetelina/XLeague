@@ -66,11 +66,11 @@ def rating_change(name, ladder, rating, factor, streak, gwon, glost, mplayed, mw
           LPub_Factor = ?,
           LStreak = ?,
           LGamesPlayed = LGamesPlayed + 1,
-          LGamesWon = ?,
-          LGamesLost = ?,
-          LMatchesPlayed = ?,
-          LMatchesWon = ?,
-          LMatchesLost = ?
+          LGamesWon = LGamesWon + ?,
+          LGamesLost = LGamesLost + ?,
+          LMatchesPlayed = LMatchesPlayed + ?,
+          LMatchesWon = LMatchesWon + ?,
+          LMatchesLost = LMatchesLost + ?
         WHERE Name = ?
         COLLATE NOCASE
         """
@@ -82,11 +82,11 @@ def rating_change(name, ladder, rating, factor, streak, gwon, glost, mplayed, mw
           CPub_Factor = ?,
           CStreak = ?,
           CGamesPlayed = CGamesPlayed + 1,
-          CGamesWon = ?,
-          CGamesLost = ?,
-          CMatchesPlayed = ?,
-          CMatchesWon = ?,
-          CMatchesLost = ?
+          CGamesWon = CGamesWon + ?,
+          CGamesLost = CGamesLost+ ?,
+          CMatchesPlayed = CMatchesPlayed + ?,
+          CMatchesWon = CMatchesWon + ?,
+          CMatchesLost = CMatchesLost + ?
         WHERE Name = ?
         COLLATE NOCASE
         """
