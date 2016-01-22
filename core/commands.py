@@ -9,13 +9,14 @@ from . import database as db
 from . import games
 
 
-def handle(auth, queues, msg):
+def handle(auth, queues, msg, protocol):
     """
     Command handler
 
     :param auth:            AUTH of a player sending command
     :param queues:          Dictionary with queue instances
     :param msg:             Message received
+    :param protocol:        Instance of irc protocol
     :return:                String with reply
     """
 
@@ -36,7 +37,7 @@ def handle(auth, queues, msg):
 
     if player['Vouched'] == 1:
         if name == "join":
-            return join(auth, total_queued, queues, args)
+            return join(auth, total_queued, queues, args, protocol)
         elif name == "leave":
             return leave(auth, queues)
 
@@ -45,7 +46,7 @@ def handle(auth, queues, msg):
         return "The command doesn't exist or you don't have enough permissions"
 
 
-def join(auth, total_queued, queues, args):
+def join(auth, total_queued, queues, args, protocol):
     """
     Join a queue
 
@@ -55,6 +56,7 @@ def join(auth, total_queued, queues, args):
     :param total_queued:    List of all players currently queued in any queue
     :param queues:          Dictionary with queue instances
     :param args:            Name of queue to join - also queue_to_join
+    :param protocol:        Instance of irc protocol
     :return:                String with reply
     """
     queue_name = args[0]
@@ -71,7 +73,7 @@ def join(auth, total_queued, queues, args):
             # Check if queue has been filled
             if queue_to_join.check() is True:
                 reply = "Queue has been filled, starting a game"
-                games.RunningGame(queue_to_join)
+                games.RunningGame(queue_to_join, protocol)
             else:
                 to_start = queue_to_join.to_start()
                 reply = "\n".join([

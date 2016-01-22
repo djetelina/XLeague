@@ -26,13 +26,14 @@ class RunningGame:
     * Close game
     """
 
-    def __init__(self, full_queue):
+    def __init__(self, full_queue, protocol):
         self.GameType = full_queue.GameType
         self.leaderboard = full_queue.leaderboard
         self.players = full_queue.QueuedPlayers
         self.matches_played = []
         self.waiting_results = []
         self.create_game()
+        self.irc_protocol = protocol
         full_queue.QueuedPlayers = []
 
     def create_game(self):
@@ -53,13 +54,13 @@ class RunningGame:
         for player in self.players:
             database_entry.append(player)
             msg = "Queue for {} you were in has started. Password: '{}'".format(self.GameType, password)
-            BOTINSTANCE.msg(player, msg)  # TODO send bot instance
+            self.irc_protocol.msg(player, msg)
         while len(database_entry) < 13:  # TODO This has to be edited based on new database structure
             database_entry.append("None")
         db.creategame(database_entry)
         reply = "Game {} - {} is starting".format(id, self.GameType)
         running_games.append(self)
-        BOTINSTANCE.msg(s.channel, reply)  # TODO send bot instance
+        self.irc_protocol.msg(s.channel, reply)
 
     def report_result(self, auth, args):
         """
@@ -79,7 +80,7 @@ class RunningGame:
                 break
             # Check if message is confirmation
             elif auth == d['opponent']:
-                rating_change = rating.RatingChange(data)
+                rating_change = rating.RatingChange(d)
                 reply = rating_change.process()
                 break
         # Queue result as waiting for confirmation
