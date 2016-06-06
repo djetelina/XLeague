@@ -1,5 +1,7 @@
 # XLeague
 
+This project is terminated, XMage now supports rating system, so therer's no need for XLeague to exist. Thank you to everyone who contributed in any way!
+
 [![Join the chat at https://gitter.im/iScrE4m/XLeague](https://badges.gitter.im/iScrE4m/XLeague.svg)](https://gitter.im/iScrE4m/XLeague?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)
 
 Inhouse League for XMage
